@@ -1,6 +1,6 @@
 pref("extensions.researchAgent.deepseekAPIKey", "");
 pref("extensions.researchAgent.deepseekBaseURL", "https://api.deepseek.com");
-pref("extensions.researchAgent.deepseekModel", "deepseek-chat");
+pref("extensions.researchAgent.deepseekModel", "deepseek-v4-flash");
 pref("extensions.researchAgent.chatProvider", "deepseek");
 pref("extensions.researchAgent.siliconFlowAPIKey", "");
 pref("extensions.researchAgent.siliconFlowBaseURL", "https://api.siliconflow.cn/v1");

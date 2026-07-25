@@ -14,7 +14,7 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 
 ## Install the prototype
 
-1. Use the included `research-agent-0.4.6.xpi` (or create it with the packaging command below).
+1. Use the included `research-agent-0.4.7.xpi` (or create it with the packaging command below).
 2. Zotero → **Tools → Add-ons** → gear icon → **Install Add-on From File…**.
 3. Restart Zotero. In an item's right-side details pane, open **Research Agent** (or click its side-navigation icon). The **Research Agent** settings tab is available in Zotero Settings.
 4. Go to Zotero **Settings → Research Agent**, select a chat-model provider, enter its API key, fetch its model list directly from the provider, select a model, and run the connection test. Brave Search is optional; GitHub Code Search requires an access token.
@@ -35,10 +35,14 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 ```sh
 node --check bootstrap.js
 for file in src/*.js chrome/content/chat.js; do node --check "$file"; done
-node tests/indexer-contract.test.js && node tests/semantic-contract.test.js && node tests/jobs-contract.test.js && node tests/agent-stream-contract.test.js && node tests/prefs-models-contract.test.js && node tests/memory-contract.test.js && node tests/markdown-contract.test.js && node tests/math-rendering-contract.test.js && node tests/sidebar-edit-contract.test.js && node tests/conversation-session-contract.test.js && node tests/reader-selection-contract.test.js && node tests/quick-prompts-contract.test.js && node tests/notes-management-contract.test.js && node tests/tools-contract.test.js
-zip -X -r research-agent-0.4.6.xpi manifest.json bootstrap.js prefs.js prefs.xhtml prefs-ui.js chrome src locale icons vendor LICENSE README.md
-unzip -t research-agent-0.4.6.xpi
+node tests/indexer-contract.test.js && node tests/semantic-contract.test.js && node tests/jobs-contract.test.js && node tests/agent-stream-contract.test.js && node tests/prefs-models-contract.test.js && node tests/deepseek-v4-contract.test.js && node tests/memory-contract.test.js && node tests/markdown-contract.test.js && node tests/math-rendering-contract.test.js && node tests/sidebar-edit-contract.test.js && node tests/conversation-session-contract.test.js && node tests/reader-selection-contract.test.js && node tests/quick-prompts-contract.test.js && node tests/notes-management-contract.test.js && node tests/tools-contract.test.js
+zip -X -r research-agent-0.4.7.xpi manifest.json bootstrap.js prefs.js prefs.xhtml prefs-ui.js chrome src locale icons vendor LICENSE README.md
+unzip -t research-agent-0.4.7.xpi
 ```
+
+## DeepSeek model migration
+
+DeepSeek retired `deepseek-chat` and `deepseek-reasoner` on 2026-07-24. The plugin now defaults to `deepseek-v4-flash` and automatically migrates either retired alias when the configured endpoint is the official `https://api.deepseek.com`; custom OpenAI-compatible endpoints are left unchanged.
 
 ## Deliberate MVP limits
 

@@ -11,7 +11,7 @@ const chunks = [
 ];
 const context = {
   Zotero: {
-    Prefs: { get: (key) => key.endsWith("APIKey") ? "key" : "deepseek-chat" },
+    Prefs: { get: (key) => key.endsWith("APIKey") ? "key" : "deepseek-v4-flash" },
     HTTP: {
       request: async (_method, _url, options) => {
         const xhr = { responseText: "" };

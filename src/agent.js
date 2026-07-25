@@ -53,7 +53,7 @@ var ResearchAgentAgent = {
 
   async completeStream(messages, apiKey, onEvent, tools) {
     const baseURL = (Zotero.Prefs.get("extensions.researchAgent.deepseekBaseURL", true) || "https://api.deepseek.com").replace(/\/$/, "");
-    const model = Zotero.Prefs.get("extensions.researchAgent.deepseekModel", true) || "deepseek-chat";
+    const model = Zotero.Prefs.get("extensions.researchAgent.deepseekModel", true) || "deepseek-v4-flash";
     const state = { content: "", reasoning: "", toolCalls: [] };
     let received = 0;
     let buffer = "";

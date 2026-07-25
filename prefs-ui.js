@@ -46,6 +46,11 @@ var ResearchAgentPreferences = {
     this.bindLivePreference("ra-context-limit", "extensions.researchAgent.contextWindowTokens", true);
     this.bindAutomaticFetch("ra-deepseek-key", "ra-deepseek-url", () => this.fetchChatModels());
     this.bindAutomaticFetch("ra-siliconflow-key", "ra-siliconflow-url", () => this.fetchKnowledgeModels());
+    // Show the persisted (and possibly startup-migrated) model in the selector
+    // as soon as settings open; the user should not need to retype a key first.
+    if (this.value("ra-deepseek-key") && this.value("ra-deepseek-url")) {
+      this.safely("ra-deepseek-status", () => this.fetchChatModels());
+    }
   },
 
   populateChatProviders() {

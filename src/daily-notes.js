@@ -73,7 +73,7 @@ var ResearchAgentDailyNotes = {
       const raw = await ResearchAgentTools.request("POST", `${(Zotero.Prefs.get("extensions.researchAgent.deepseekBaseURL", true) || "https://api.deepseek.com").replace(/\/$/, "")}/chat/completions`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: Zotero.Prefs.get("extensions.researchAgent.deepseekModel", true) || "deepseek-chat",
+          model: Zotero.Prefs.get("extensions.researchAgent.deepseekModel", true) || "deepseek-v4-flash",
           temperature: 0.1,
           messages: [{
             role: "system",

@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const context = {
-  Zotero: { Prefs: { get: (key) => key.endsWith("deepseekModel") ? "deepseek-chat" : "BAAI/bge-m3", set: () => {} } },
+  Zotero: { Prefs: { get: (key) => key.endsWith("deepseekModel") ? "deepseek-v4-flash" : "BAAI/bge-m3", set: () => {} } },
   document: {}, setTimeout, clearTimeout, Error, JSON
 };
 vm.createContext(context);
@@ -26,6 +26,6 @@ prefs.request = async (method, url, key) => {
 
 (async () => {
   await prefs.fetchChatModels();
-  assert.deepEqual(options[0], ["ra-deepseek-model", ["chat-a", "chat-b"], "deepseek-chat"]);
+  assert.deepEqual(options[0], ["ra-deepseek-model", ["chat-a", "chat-b"], "deepseek-v4-flash"]);
   console.log("Preference model discovery contract passed.");
 })().catch((error) => { console.error(error); process.exitCode = 1; });
