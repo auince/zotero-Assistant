@@ -3,6 +3,8 @@
 var ResearchAgentPreferences = {
   initialized: false,
   startupTimer: null,
+  skillSearchResults: [],
+  selectedSkillDetail: null,
   chatProviders: [
     { id: "deepseek", label: "DeepSeek", baseURL: "https://api.deepseek.com" },
     { id: "siliconflow", label: "硅基流动（开源模型）", baseURL: "https://api.siliconflow.cn/v1" },
@@ -36,6 +38,11 @@ var ResearchAgentPreferences = {
     doc.getElementById("ra-test-deepseek").addEventListener("click", () => this.safely("ra-deepseek-status", () => this.testChat()));
     doc.getElementById("ra-fetch-siliconflow-models").addEventListener("click", () => this.safely("ra-siliconflow-status", () => this.fetchKnowledgeModels()));
     doc.getElementById("ra-test-siliconflow").addEventListener("click", () => this.safely("ra-siliconflow-status", () => this.testKnowledge()));
+    doc.getElementById("ra-search-skills").addEventListener("click", () => this.safely("ra-skill-status", () => this.searchSkills()));
+    doc.getElementById("ra-preview-skill").addEventListener("click", () => this.safely("ra-skill-status", () => this.previewSelectedSkill()));
+    doc.getElementById("ra-install-skill").addEventListener("click", () => this.safely("ra-skill-status", () => this.installSelectedSkill()));
+    doc.getElementById("ra-skill-results").addEventListener("change", () => { this.selectedSkillDetail = null; });
+    doc.getElementById("ra-skill-query").addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); this.safely("ra-skill-status", () => this.searchSkills()); } });
     this.bindModel("ra-deepseek-model", "extensions.researchAgent.deepseekModel");
     this.bindModel("ra-embedding-model", "extensions.researchAgent.embeddingModel");
     this.bindModel("ra-rerank-model", "extensions.researchAgent.rerankModel");
@@ -51,6 +58,7 @@ var ResearchAgentPreferences = {
     if (this.value("ra-deepseek-key") && this.value("ra-deepseek-url")) {
       this.safely("ra-deepseek-status", () => this.fetchChatModels());
     }
+    this.renderInstalledSkills().catch((error) => this.setStatus("ra-skill-status", `无法读取本地技能库：${error.message}`, true));
   },
 
   populateChatProviders() {
@@ -149,6 +157,182 @@ var ResearchAgentPreferences = {
     const data = JSON.parse(text);
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
     return data;
+  },
+
+  async publicRequest(url) {
+    const response = await Zotero.HTTP.request("GET", url, {
+      headers: { Accept: "application/json" },
+      responseType: "text",
+      timeout: 30000
+    });
+    const text = response.responseText || response.response || "{}";
+    const data = JSON.parse(text);
+    if (data.error) throw new Error(data.message || data.error);
+    return data;
+  },
+
+  async publicTextRequest(url) {
+    const response = await Zotero.HTTP.request("GET", url, { responseType: "text", timeout: 30000 });
+    return response.responseText || response.response || "";
+  },
+
+  skillIndexPath() {
+    const file = Zotero.File.pathToFile(Zotero.DataDirectory.dir).clone();
+    file.append("research-agent");
+    file.append("skills-index.json");
+    return file.path;
+  },
+
+  async readSkillIndex() {
+    const root = Zotero.File.pathToFile(Zotero.DataDirectory.dir).clone();
+    root.append("research-agent");
+    await Zotero.File.createDirectoryIfMissingAsync(root.path);
+    try {
+      const data = JSON.parse(await Zotero.File.getContentsAsync(this.skillIndexPath()));
+      return { version: 1, skills: Array.isArray(data.skills) ? data.skills : [] };
+    } catch (error) {
+      if (error.name === "NotFoundError" || /no such file/i.test(error.message)) return { version: 1, skills: [] };
+      throw error;
+    }
+  },
+
+  async writeSkillIndex(index) {
+    await Zotero.File.putContentsAsync(this.skillIndexPath(), JSON.stringify({ version: 1, skills: index.skills || [] }, null, 2));
+  },
+
+  selectedResult() {
+    const id = document.getElementById("ra-skill-results").value;
+    return this.skillSearchResults.find((skill) => skill.id === id) || null;
+  },
+
+  skillDetailURL(id) {
+    const safePath = String(id || "").split("/").map((part) => encodeURIComponent(part)).join("/");
+    if (!safePath || safePath.split("/").length < 2) throw new Error("技能标识无效。请重新搜索后选择。" );
+    return `https://skills.sh/api/v1/skills/${safePath}`;
+  },
+
+  async searchSkills() {
+    const query = this.value("ra-skill-query");
+    if (query.length < 2) throw new Error("请输入至少两个字符的技能关键词。");
+    this.setStatus("ra-skill-status", "正在搜索 SkillMD 技能目录…");
+    const data = await this.publicRequest(`https://api.skillmd.com/v1/search?q=${encodeURIComponent(query)}&limit=20`);
+    this.skillSearchResults = (data.items || data.data || []).map((skill) => ({
+      id: skill.id || skill.slug,
+      name: skill.name || skill.title || skill.slug,
+      description: skill.description || "",
+      source: skill.source || String(skill.slug || "").split("/").slice(0, -1).join("/"),
+      url: skill.url || "",
+      rawURL: skill.raw_url || skill.rawURL || "",
+      verified: Boolean(skill.verified),
+      installs: Number(skill.installs || skill.install_count || 0)
+    })).filter((skill) => skill.id && skill.name && skill.rawURL);
+    const select = document.getElementById("ra-skill-results");
+    select.replaceChildren();
+    if (!this.skillSearchResults.length) {
+      const empty = document.createElement("option"); empty.value = ""; empty.textContent = "没有找到匹配技能"; select.append(empty);
+      this.setStatus("ra-skill-status", "没有找到可安装的匹配技能。可尝试使用英文主题词，例如 literature review。", true);
+      return;
+    }
+    for (const skill of this.skillSearchResults) {
+      const option = document.createElement("option"); option.value = skill.id;
+      option.textContent = `${skill.name}${skill.verified ? " · 已审阅" : ""} · ${skill.source || "未知来源"}`;
+      select.append(option);
+    }
+    this.selectedSkillDetail = null;
+    this.setStatus("ra-skill-status", `找到 ${this.skillSearchResults.length} 个技能。选择后请先预览内容与风险提示。`);
+  },
+
+  parseSkillFrontmatter(content, fallback) {
+    const header = String(content || "").match(/^---\s*\n([\s\S]*?)\n---/);
+    const field = (name) => header?.[1]?.match(new RegExp(`^${name}:\\s*["']?([^\\n"']+)["']?\\s*$`, "m"))?.[1]?.trim() || "";
+    return { name: field("name") || fallback.name || fallback.slug || fallback.id, description: field("description") || fallback.description || "" };
+  },
+
+  skillWarnings(content) {
+    const text = String(content || "");
+    const warnings = [];
+    if (/ignore (all |any |the )?(previous|system)|override (the )?(system|safety)|prompt injection/i.test(text)) warnings.push("包含可能试图改变指令优先级的文本");
+    if (/\b(curl|wget|fetch\(|powershell|bash|zsh|cmd\.exe|npm install|pip install|brew install)\b/i.test(text)) warnings.push("包含网络、终端或依赖安装命令（本插件不会执行）");
+    if (/\b(api[ _-]?key|token|password|secret|\.env|credential)\b/i.test(text)) warnings.push("提及密钥或凭据；聊天时不会向技能提供这些内容");
+    if (/\b(upload|exfiltrat|send .*to|read .*file|delete|rm -rf)\b/i.test(text)) warnings.push("包含文件或数据处理指令，需人工审阅");
+    return warnings;
+  },
+
+  async loadSelectedSkillDetail() {
+    const selected = this.selectedResult();
+    if (!selected) throw new Error("请先选择一个搜索结果。");
+    if (this.selectedSkillDetail?.id === selected.id) return this.selectedSkillDetail;
+    this.setStatus("ra-skill-status", "正在下载技能说明以供预览…");
+    const content = String(await this.publicTextRequest(selected.rawURL));
+    if (!content.trim()) throw new Error("该技能没有可安装的 SKILL.md 文本。");
+    if (content.length > 48000) throw new Error("技能说明超过 48,000 字符，为保护上下文窗口未安装。");
+    const meta = this.parseSkillFrontmatter(content, selected);
+    this.selectedSkillDetail = {
+      id: selected.id,
+      name: meta.name,
+      description: meta.description,
+      source: selected.source || "",
+      url: selected.url || "",
+      installUrl: selected.rawURL || "",
+      installs: Number(selected.installs || 0),
+      content,
+      warnings: this.skillWarnings(content)
+    };
+    return this.selectedSkillDetail;
+  },
+
+  async previewSelectedSkill() {
+    const skill = await this.loadSelectedSkillDetail();
+    const preview = document.getElementById("ra-skill-preview");
+    const warnings = skill.warnings.length ? `\n\n风险提示：${skill.warnings.join("；")}。\n本插件仅把此文本作为方法说明，绝不执行其中脚本或安装命令。` : "\n\n未检测到常见的高风险关键词；仍请阅读完整内容后再启用。";
+    preview.textContent = `${skill.name}\n来源：${skill.source || "未知"}\n${skill.description || "（未提供描述）"}${warnings}\n\n${skill.content}`;
+    this.setStatus("ra-skill-status", "已载入预览。确认内容适合你的研究流程后，才安装并启用。", skill.warnings.length > 0);
+  },
+
+  async installSelectedSkill() {
+    const skill = await this.loadSelectedSkillDetail();
+    const index = await this.readSkillIndex();
+    const position = index.skills.findIndex((entry) => entry.id === skill.id);
+    const record = { ...skill, enabled: true, installedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    if (position === -1) index.skills.push(record); else index.skills[position] = { ...index.skills[position], ...record };
+    await this.writeSkillIndex(index);
+    await this.renderInstalledSkills();
+    this.setStatus("ra-skill-status", `已安装并启用「${skill.name}」。它将在相关提问时作为受限的方法说明加载。`, skill.warnings.length > 0);
+  },
+
+  async setSkillEnabled(id, enabled) {
+    const index = await this.readSkillIndex();
+    const skill = index.skills.find((entry) => entry.id === id);
+    if (!skill) return;
+    skill.enabled = Boolean(enabled); skill.updatedAt = new Date().toISOString();
+    await this.writeSkillIndex(index);
+    await this.renderInstalledSkills();
+  },
+
+  async removeSkill(id) {
+    const index = await this.readSkillIndex();
+    const skill = index.skills.find((entry) => entry.id === id);
+    if (!skill || !document.defaultView.confirm(`移除本地技能「${skill.name}」？不会影响远端来源。`)) return;
+    index.skills = index.skills.filter((entry) => entry.id !== id);
+    await this.writeSkillIndex(index);
+    await this.renderInstalledSkills();
+    this.setStatus("ra-skill-status", "已从本地技能库移除。" );
+  },
+
+  async renderInstalledSkills() {
+    const container = document.getElementById("ra-installed-skills");
+    const skills = await this.readSkillIndex().then((index) => index.skills.sort((a, b) => String(a.name).localeCompare(String(b.name), "zh-CN")));
+    container.replaceChildren();
+    if (!skills.length) { container.textContent = "尚未安装技能。搜索后可预览并安装。"; return; }
+    for (const skill of skills) {
+      const row = document.createElement("div"); row.className = "skill-installed-row";
+      const enabled = document.createElement("input"); enabled.type = "checkbox"; enabled.checked = Boolean(skill.enabled); enabled.title = "在聊天中启用此技能";
+      enabled.addEventListener("change", () => this.setSkillEnabled(skill.id, enabled.checked).catch((error) => this.setStatus("ra-skill-status", error.message, true)));
+      const label = document.createElement("div"); label.className = "skill-installed-name"; label.textContent = skill.name || skill.id; label.title = `${skill.source || "未知来源"}\n${skill.description || ""}`;
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "secondary"; remove.textContent = "移除";
+      remove.addEventListener("click", () => this.removeSkill(skill.id).catch((error) => this.setStatus("ra-skill-status", error.message, true)));
+      row.append(enabled, label, remove); container.append(row);
+    }
   },
 
   async fetchChatModels() {

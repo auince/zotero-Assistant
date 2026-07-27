@@ -25,7 +25,7 @@ const context = {
     },
     logError: () => {}
   },
-  ResearchAgentStorage: { appendConversation: async () => {} },
+  ResearchAgentStorage: { appendConversation: async () => {}, getEnabledSkills: async () => [] },
   ResearchAgentTools: { definitions: [], definitionsFor: () => [], execute: async () => [] },
   Set, JSON, Error
 };

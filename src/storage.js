@@ -8,6 +8,7 @@ var ResearchAgentStorage = {
   conversationsDirectoryPath: null,
   settingsPath: null,
   notesIndexPath: null,
+  skillsIndexPath: null,
 
   async initialize() {
     if (this.root) return;
@@ -18,6 +19,7 @@ var ResearchAgentStorage = {
     this.conversationsDirectoryPath = this.join(this.root, "conversations");
     this.settingsPath = this.join(this.root, "state.json");
     this.notesIndexPath = this.join(this.root, "notes-index.json");
+    this.skillsIndexPath = this.join(this.root, "skills-index.json");
     await Zotero.File.createDirectoryIfMissingAsync(this.root);
     await Zotero.File.createDirectoryIfMissingAsync(this.conversationsDirectoryPath);
   },
@@ -257,6 +259,32 @@ var ResearchAgentStorage = {
 
   async saveState(state) {
     await this.writeJSON(this.settingsPath, state);
+  },
+
+  async getSkillIndex() {
+    const index = await this.readJSON(this.skillsIndexPath, null);
+    return { version: 1, skills: index?.skills || [] };
+  },
+
+  async saveSkillIndex(index) {
+    await this.writeJSON(this.skillsIndexPath, { version: 1, skills: index.skills || [] });
+  },
+
+  async listSkills() {
+    return (await this.getSkillIndex()).skills.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id), "zh-CN"));
+  },
+
+  async getEnabledSkills(maxCharacters = 18000) {
+    const selected = (await this.listSkills()).filter((skill) => skill.enabled && skill.content);
+    const loaded = [];
+    let used = 0;
+    for (const skill of selected) {
+      const content = String(skill.content).slice(0, 12000);
+      if (!content || used + content.length > maxCharacters) continue;
+      loaded.push({ id: skill.id, name: skill.name || skill.id, description: skill.description || "", content });
+      used += content.length;
+    }
+    return loaded;
   },
 
   notesDirectory() {

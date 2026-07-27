@@ -18,6 +18,16 @@
     .research-agent-prefs .status.visible { display: block; }
     .research-agent-prefs .status.error { background: #fff0f0; color: #9b3434; }
     .research-agent-prefs .optional { margin-top: 13px; }
+    .research-agent-prefs .skill-search { display: flex; gap: 7px; }
+    .research-agent-prefs .skill-search input { flex: 1; }
+    .research-agent-prefs .skill-search button { flex: 0 0 auto; }
+    .research-agent-prefs .skill-results, .research-agent-prefs .skill-installed { width: 100%; min-height: 108px; margin-top: 9px; }
+    .research-agent-prefs .skill-preview { max-height: 210px; margin: 9px 0 0; padding: 9px; overflow: auto; border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 7px; background: color-mix(in srgb, currentColor 3%, transparent); color: inherit; font: menu; font-size: .86em; line-height: 1.4; white-space: pre-wrap; }
+    .research-agent-prefs .skill-installed { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+    .research-agent-prefs .skill-installed-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px; align-items: center; padding: 7px 8px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 7px; }
+    .research-agent-prefs .skill-installed-row input { width: auto; min-height: auto; }
+    .research-agent-prefs .skill-installed-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .research-agent-prefs .skill-warning { margin-top: 7px; color: #a56812; font-size: .86em; line-height: 1.35; }
   </html:style>
   <html:main class="research-agent-prefs">
     <html:h2>研究助手设置</html:h2>
@@ -57,6 +67,18 @@
       <html:h3 class="service-title">会话记忆与上下文</html:h3>
       <html:p class="service-note">上下文余量按估算 token 显示。超过上限时，助手会自动创建摘要层并按当前问题检索相关记忆。所有修改立即生效，无需重启 Zotero。</html:p>
       <html:div class="field"><html:label for="ra-context-limit">上下文上限（估算 token）</html:label><html:input id="ra-context-limit" type="number" min="16000" step="1000" preference="extensions.researchAgent.contextWindowTokens"/></html:div>
+    </html:section>
+
+    <html:section class="service optional">
+      <html:h3 class="service-title">研究技能（SkillMD）</html:h3>
+      <html:p class="service-note">可搜索并安装公开、安全审阅的 SKILL.md 工作流。安装内容仅作为助手的回答方法与检查清单，不会执行 skill 携带的脚本、MCP、终端命令或依赖；请在启用前阅读预览和风险提示。</html:p>
+      <html:div class="skill-search"><html:input id="ra-skill-query" type="search" placeholder="例如：literature review、research synthesis" aria-label="搜索研究技能"/><html:button id="ra-search-skills" type="button">搜索技能</html:button></html:div>
+      <html:select id="ra-skill-results" class="skill-results" size="5" aria-label="技能搜索结果"><html:option value="">输入关键词后搜索 SkillMD</html:option></html:select>
+      <html:div class="actions"><html:button id="ra-preview-skill" class="secondary" type="button">预览选中技能</html:button><html:button id="ra-install-skill" type="button">安装并启用选中技能</html:button></html:div>
+      <html:pre id="ra-skill-preview" class="skill-preview">技能内容会在这里预览。安装前请确认其来源与说明。</html:pre>
+      <html:div id="ra-skill-status" class="status" role="status"/>
+      <html:h4 class="service-title">已安装技能</html:h4>
+      <html:div id="ra-installed-skills" class="skill-installed">正在读取本地技能库…</html:div>
     </html:section>
   </html:main>
 </vbox>
