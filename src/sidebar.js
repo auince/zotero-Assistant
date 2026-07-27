@@ -449,11 +449,11 @@ var ResearchAgentSidebar = {
         Zotero.logError(error); status.textContent = `工具检查失败：${error.message}`;
       }
     };
-    entryActions.append(this.button(doc, "刷新", refreshEntries), this.button(doc, "重嵌入所选", () => startJob((callback) => ResearchAgentIndexer.startReembedEntries(selectedKeys(), callback))), this.button(doc, "移除所选", async () => { const keys = selectedKeys(); if (!keys.length || !doc.defaultView.confirm(`从本地知识库移除 ${keys.length} 个条目？Zotero 原始文献不会被删除。`)) return; status.textContent = await ResearchAgentIndexer.removeEntries(keys); await refreshEntries(); }), this.button(doc, "检查工具可用性", checkTools), this.button(doc, "生成今日笔记", () => generateTodayNote()));
+    entryActions.append(this.button(doc, "刷新", refreshEntries), this.button(doc, "重嵌入所选", () => startJob((callback) => ResearchAgentIndexer.startReembedEntries(selectedKeys(), callback))), this.button(doc, "移除所选", async () => { const keys = selectedKeys(); if (!keys.length || !doc.defaultView.confirm(`从本地知识库移除 ${keys.length} 个条目？Zotero 原始文献不会被删除。`)) return; status.textContent = await ResearchAgentIndexer.removeEntries(keys); await refreshEntries(); }), this.button(doc, "检查工具可用性", checkTools), this.button(doc, "检查并更新会话笔记", () => generateTodayNote()));
     management.append(managementTitle, entryCopy, entries, entryActions); knowledgePanel.append(indexCard, management);
     const notesCard = doc.createElement("div"); notesCard.className = "research-agent-card";
-    const notesTitle = doc.createElement("div"); notesTitle.className = "research-agent-card-title"; notesTitle.textContent = "每日研究笔记";
-    const notesCopy = doc.createElement("p"); notesCopy.className = "research-agent-card-copy"; notesCopy.textContent = "每天的对话会提炼为一个可检索的本地 Markdown 笔记，保留代表性标题、问题、思考与引用论文。重复生成同一天时会更新同一份笔记。";
+    const notesTitle = doc.createElement("div"); notesTitle.className = "research-agent-card-title"; notesTitle.textContent = "会话研究笔记";
+    const notesCopy = doc.createElement("p"); notesCopy.className = "research-agent-card-copy"; notesCopy.textContent = "每个会话对应一份持续演化的本地 Markdown 笔记。每日会自动检查，只更新内容发生变化的会话；笔记会保留关注点假设、证据缺口、可验证下一步与延展性反问。";
     const noteActions = doc.createElement("div"); noteActions.className = "research-agent-note-actions";
     const noteLayout = doc.createElement("div"); noteLayout.className = "research-agent-notes-layout";
     const noteList = doc.createElement("div"); noteList.className = "research-agent-note-list";
@@ -463,7 +463,7 @@ var ResearchAgentSidebar = {
       const notes = await ResearchAgentStorage.listNotes();
       noteList.replaceChildren(); notePreview.replaceChildren();
       if (!notes.length) {
-        const empty = doc.createElement("div"); empty.className = "research-agent-note-empty"; empty.textContent = "还没有笔记。完成一轮对话后，可点击“生成今日笔记”。";
+        const empty = doc.createElement("div"); empty.className = "research-agent-note-empty"; empty.textContent = "还没有笔记。完成一轮对话后，可点击“检查并更新会话笔记”。";
         notePreview.append(empty); activeNoteFilename = null; activeNoteContent = ""; return;
       }
       const active = notes.find((note) => note.filename === requestedFilename) || notes[0];
@@ -471,21 +471,21 @@ var ResearchAgentSidebar = {
       for (const note of notes) {
         const item = this.button(doc, note.title, () => renderNotes(note.filename));
         item.classList.add("research-agent-note-item"); item.classList.toggle("is-active", note.filename === active.filename);
-        const meta = doc.createElement("small"); meta.textContent = `${note.day || this.shortDate(note.updatedAt)} · ${note.questionCount || 0} 个问题 · ${note.insightCount || 0} 条思考`;
+        const meta = doc.createElement("small"); meta.textContent = `${note.questionCount || 0} 个问题 · ${note.focusCount || 0} 个关注点 · ${note.nextStepCount || 0} 个下一步`;
         item.append(meta); noteList.append(item);
       }
       activeNoteContent = await ResearchAgentStorage.getNote(active.filename) || "";
-      const meta = doc.createElement("div"); meta.className = "research-agent-context-label"; meta.textContent = `${active.day || "未标注日期"} · ${active.questionCount || 0} 个问题 · ${active.insightCount || 0} 条思考`;
+      const meta = doc.createElement("div"); meta.className = "research-agent-context-label"; meta.textContent = `会话笔记 · ${active.questionCount || 0} 个问题 · ${active.focusCount || 0} 个关注点 · ${active.nextStepCount || 0} 个下一步`;
       const content = doc.createElement("div"); content.className = "research-agent-message-content"; ResearchAgentMarkdown.render(doc, content, activeNoteContent);
       notePreview.append(meta, content);
       if (active.citations?.length) this.addCitations(doc, notePreview, active.citations.map((label) => ({ label })));
     };
     const generateTodayNote = async () => {
-      try { status.textContent = "正在整理今天的对话并生成笔记…"; const result = await ResearchAgentDailyNotes.runNow(); await renderNotes(); status.textContent = result; }
+      try { status.textContent = "正在检查会话变动并更新对应笔记…"; const result = await ResearchAgentDailyNotes.runNow(); await renderNotes(); status.textContent = result; }
       catch (error) { Zotero.logError(error); status.textContent = `生成笔记失败：${error.message}`; }
     };
     noteActions.append(
-      this.button(doc, "生成今日笔记", generateTodayNote),
+      this.button(doc, "检查并更新会话笔记", generateTodayNote),
       this.button(doc, "刷新列表", () => renderNotes()),
       this.button(doc, "复制当前笔记", () => copyText(activeNoteContent)),
       this.button(doc, "在默认程序打开", async () => { if (!activeNoteFilename) return; await ResearchAgentStorage.openNote(activeNoteFilename); }),

@@ -266,8 +266,8 @@ var ResearchAgentStorage = {
   async getNoteIndex() {
     await this.initialize();
     const index = await this.readJSON(this.notesIndexPath, null);
-    if (index) return { version: 1, notes: index.notes || [] };
-    const migrated = { version: 1, notes: [] };
+    if (index) return { version: 2, notes: index.notes || [] };
+    const migrated = { version: 2, notes: [] };
     await this.migrateNoteIndex(migrated);
     await this.writeJSON(this.notesIndexPath, migrated);
     return migrated;
@@ -296,15 +296,21 @@ var ResearchAgentStorage = {
       day,
       title,
       updatedAt: metadata.updatedAt || new Date().toISOString(),
+      conversationID: metadata.conversationID || "",
+      sourceUpdatedAt: metadata.sourceUpdatedAt || "",
       questionCount: Number(metadata.questionCount) || 0,
       insightCount: Number(metadata.insightCount) || 0,
+      focusCount: Number(metadata.focusCount) || 0,
+      nextStepCount: Number(metadata.nextStepCount) || 0,
       citations: metadata.citations || []
     };
   },
 
-  async listNotes() {
+  async listNotes({ includeLegacy = false } = {}) {
     const index = await this.getNoteIndex();
-    return [...index.notes].sort((a, b) => `${b.day}|${b.updatedAt}`.localeCompare(`${a.day}|${a.updatedAt}`));
+    const sessionNotes = index.notes.filter((note) => note.conversationID);
+    const notes = sessionNotes.length && !includeLegacy ? sessionNotes : index.notes;
+    return [...notes].sort((a, b) => `${b.updatedAt}|${b.title}`.localeCompare(`${a.updatedAt}|${a.title}`));
   },
 
   async getNote(filename) {
@@ -315,6 +321,11 @@ var ResearchAgentStorage = {
 
   async getNoteForDay(day) {
     return (await this.listNotes()).find((note) => note.day === day) || null;
+  },
+
+  async getNoteForConversation(conversationID) {
+    if (!conversationID) return null;
+    return (await this.listNotes()).find((note) => note.conversationID === conversationID) || null;
   },
 
   async writeNote(filename, content, metadata = {}) {
