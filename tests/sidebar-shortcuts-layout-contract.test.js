@@ -8,5 +8,8 @@ assert.ok(source.includes(".research-agent-sessionbar .research-agent-primary{mi
 assert.ok(source.includes("Enter 发送 · ⌘ / Ctrl + Enter 换行"), "the visible shortcut hint must match the requested behavior");
 assert.ok(source.includes("!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey"), "only unmodified Enter should send messages");
 assert.ok(source.includes("!event.isComposing"), "IME composition must not accidentally send a message");
+assert.ok(source.includes("research-agent-notes-card{flex:1 1 0;min-height:0;overflow:hidden}"), "notes card must receive a bounded flex height");
+assert.ok(source.includes("overflow-y:scroll"), "note preview must own a usable vertical scrollbar");
+assert.ok(source.includes("research-agent-note-title"), "note title and metadata must render as distinct non-overlapping elements");
 
 console.log("Sidebar shortcuts and layout contract passed.");
