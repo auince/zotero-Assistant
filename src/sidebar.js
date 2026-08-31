@@ -86,7 +86,7 @@ var ResearchAgentSidebar = {
       .research-agent-tab:hover { background:color-mix(in srgb,var(--ra-accent) 10%,transparent); }.research-agent-tab.is-active{background:var(--ra-accent);color:#fff;box-shadow:0 1px 4px color-mix(in srgb,var(--ra-accent) 35%,transparent)}
       .research-agent-status { padding:7px 9px; border-radius:8px; background:var(--ra-accent-weak); color:color-mix(in srgb,var(--ra-accent) 78%,currentColor); font-size:.9em; line-height:1.35; }.research-agent-panel{display:none;min-height:0}.research-agent-panel.is-active{display:flex;flex:1;flex-direction:column;gap:10px}
       .research-agent-sessionbar { display:grid; grid-template-columns:minmax(0,1fr) max-content; flex:0 0 auto; align-items:center; gap:6px; min-width:0; }.research-agent-session-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }.research-agent-sessionbar .research-agent-primary{min-width:max-content;white-space:nowrap}.research-agent button { min-height:29px; padding:5px 9px; border:1px solid var(--ra-border); border-radius:7px; background:var(--material-sidepane,#fff); color:inherit; font:menu; cursor:pointer; }.research-agent button:hover:not(:disabled){border-color:var(--ra-accent);background:var(--ra-accent-weak)}.research-agent button:disabled{cursor:wait;opacity:.65}.research-agent-primary{border-color:var(--ra-accent)!important;background:var(--ra-accent)!important;color:#fff!important;font-weight:650!important}
-      .research-agent-session-drawer { display:none; flex:1 1 0; flex-direction:column; gap:8px; min-height:0; overflow:hidden; padding:10px; border:1px solid var(--ra-border); border-radius:10px; background:color-mix(in srgb,var(--ra-accent) 4%,transparent); }.research-agent-session-drawer.is-open{display:flex}.research-agent-session-list{display:flex;flex:1 1 0;flex-direction:column;align-items:stretch;gap:7px;min-height:0;overflow-x:hidden;overflow-y:auto}.research-agent-session-card{display:flex;flex:0 0 auto;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--ra-border);border-radius:8px;background:var(--ra-surface-raised)}.research-agent-session-card.is-active{border-color:var(--ra-accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ra-accent) 18%,transparent)}.research-agent-session-item{box-sizing:border-box;display:block;flex:0 0 auto;width:100%;min-height:auto!important;padding:7px 8px!important;overflow:hidden;border:0!important;border-radius:0!important;background:transparent!important;text-align:left;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.research-agent-session-card.is-active .research-agent-session-item{background:var(--ra-accent-weak)!important}.research-agent-session-paper{display:-webkit-box;min-width:0;max-height:2.7em;padding:5px 8px;overflow:hidden;border-top:1px solid var(--ra-border);-webkit-box-orient:vertical;-webkit-line-clamp:2;color:var(--fill-secondary,#687583);font-size:.78em;line-height:1.35;overflow-wrap:anywhere}.research-agent-session-actions{display:flex;flex-wrap:wrap;gap:6px}.research-agent-session-drawer > .research-agent-session-toggle,.research-agent-session-drawer > button{flex:0 0 auto}.research-agent-session-toggle{display:flex;align-items:center;gap:6px;color:var(--fill-secondary,#687583);font-size:.88em}
+      .research-agent-session-drawer { display:none; flex:1 1 0; flex-direction:column; gap:8px; min-height:0; overflow:hidden; padding:10px; border:1px solid var(--ra-border); border-radius:10px; background:color-mix(in srgb,var(--ra-accent) 4%,transparent); }.research-agent-session-drawer.is-open{display:flex}.research-agent-session-list{display:flex;flex:1 1 0;flex-direction:column;align-items:stretch;gap:7px;min-height:0;overflow-x:hidden;overflow-y:auto}.research-agent-session-card{display:flex;flex:0 0 auto;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--ra-border);border-radius:8px;background:var(--ra-surface-raised)}.research-agent-session-card.is-active{border-color:var(--ra-accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ra-accent) 18%,transparent)}.research-agent-session-item{box-sizing:border-box;display:block;flex:0 0 auto;width:100%;min-height:auto!important;padding:7px 8px!important;overflow:hidden;border:0!important;border-radius:0!important;background:transparent!important;text-align:left;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.research-agent-session-card.is-active .research-agent-session-item{background:var(--ra-accent-weak)!important}.research-agent-session-paper{display:-webkit-box;min-width:0;max-height:2.7em;padding:5px 8px;overflow:hidden;border-top:1px solid var(--ra-border);-webkit-box-orient:vertical;-webkit-line-clamp:2;color:var(--fill-secondary,#687583);font-size:.78em;line-height:1.35;overflow-wrap:anywhere}.research-agent-session-actions{display:flex;justify-content:flex-end;padding:5px 7px;border-top:1px solid var(--ra-border)}.research-agent-session-delete{min-height:24px!important;padding:2px 7px!important;border-color:transparent!important;background:transparent!important;color:var(--ra-muted)!important;font-size:.8em}.research-agent-session-delete:hover:not(:disabled){border-color:#b84a4a!important;background:color-mix(in srgb,#b84a4a 10%,transparent)!important;color:#b84a4a!important}.research-agent-session-drawer > .research-agent-session-toggle,.research-agent-session-drawer > button{flex:0 0 auto}.research-agent-session-toggle{display:flex;align-items:center;gap:6px;color:var(--fill-secondary,#687583);font-size:.88em}
       .research-agent-rag { display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding:8px 10px; border:1px solid var(--ra-border); border-radius:10px; background:color-mix(in srgb,var(--ra-accent) 3%,transparent); }.research-agent-rag label{display:flex;align-items:center;gap:5px;font-weight:650}.research-agent-rag select{flex:1;min-width:150px;box-sizing:border-box;min-height:28px;border:1px solid var(--ra-border);border-radius:6px;background:var(--material-sidepane,#fff);color:inherit;font:menu}.research-agent-rag select:disabled{opacity:.55}.research-agent-rag-note{width:100%;color:var(--fill-secondary,#687583);font-size:.82em}
       .research-agent-context{padding:9px 10px;border:1px solid var(--ra-border);border-radius:10px;background:color-mix(in srgb,var(--ra-accent) 4%,transparent)}.research-agent-context-label{display:block;margin-bottom:3px;color:var(--fill-secondary,#687583);font-size:.82em;font-weight:600}.research-agent-selected-item{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-weight:650;line-height:1.35}
       .research-agent-log{flex:1;min-height:200px;overflow:auto;padding:12px;border:1px solid var(--ra-border);border-radius:11px;background:var(--material-sidepane,#fff);box-shadow:inset 0 1px 0 color-mix(in srgb,currentColor 4%,transparent);line-height:1.48}.research-agent-message{margin:0 0 12px;padding:8px 10px;border-radius:9px;background:color-mix(in srgb,currentColor 4%,transparent)}.research-agent-message:last-child{margin-bottom:0}.research-agent-message.is-user{background:var(--ra-accent-weak)}.research-agent-role{display:block;margin-bottom:3px;color:var(--ra-accent);font-size:.84em;font-weight:700}.research-agent-message-content{white-space:pre-wrap}.research-agent-message-actions{display:flex;justify-content:flex-end;gap:5px;margin-top:7px}.research-agent-message-actions button{min-height:24px;padding:2px 6px;font-size:.8em}
@@ -159,7 +159,7 @@ var ResearchAgentSidebar = {
     const ragToggle = doc.createElement("input"); ragToggle.type = "checkbox";
     const ragLabel = doc.createElement("label"); ragLabel.append(ragToggle, doc.createTextNode("启用知识库检索（RAG）"));
     const ragSelect = doc.createElement("select"); ragSelect.disabled = true;
-    const ragNote = doc.createElement("span"); ragNote.className = "research-agent-rag-note"; ragNote.textContent = "未启用 RAG：仅分析当前左侧论文，不连接知识库或网络工具。";
+    const ragNote = doc.createElement("span"); ragNote.className = "research-agent-rag-note"; ragNote.textContent = "未启用 RAG：不检索本地知识库；若有当前论文会一并分析，联网、arXiv 与 GitHub 工具仍由助手按需调用。";
     rag.append(ragLabel, ragSelect, ragNote);
     const context = doc.createElement("div"); context.className = "research-agent-context";
     const contextLabel = doc.createElement("span"); contextLabel.className = "research-agent-context-label"; contextLabel.textContent = "本会话关联文献";
@@ -244,7 +244,7 @@ var ResearchAgentSidebar = {
         ragNote.textContent = "请选择一个已嵌入的知识库；本地检索仅在该范围内进行。联网、arXiv 与 GitHub 工具可按需调用；不会调用硅基流动。";
         refreshRagBases().catch((error) => { Zotero.logError(error); status.textContent = `无法读取知识库：${error.message}`; });
       } else {
-        ragNote.textContent = "未启用 RAG：仅分析当前左侧论文，不连接知识库或网络工具。";
+        ragNote.textContent = "未启用 RAG：不检索本地知识库；若有当前论文会一并分析，联网、arXiv 与 GitHub 工具仍由助手按需调用。";
       }
     });
     const renderSessions = () => {
@@ -258,7 +258,12 @@ var ResearchAgentSidebar = {
         const paper = doc.createElement("div"); paper.className = "research-agent-session-paper";
         paper.textContent = `关联文献：${summary.paper?.title || "未关联文献"} · ${this.shortDate(summary.updatedAt)}`;
         paper.title = summary.paper?.title || "未关联文献";
-        card.append(entry, paper); sessionList.append(card);
+        const actions = doc.createElement("div"); actions.className = "research-agent-session-actions";
+        const remove = this.button(doc, "删除会话", () => deleteSession(summary.id));
+        remove.classList.add("research-agent-session-delete");
+        remove.title = `删除会话：${summary.title}`;
+        actions.append(remove);
+        card.append(entry, paper, actions); sessionList.append(card);
       }
     };
     const renderCitations = (target, citations) => {
@@ -344,6 +349,24 @@ var ResearchAgentSidebar = {
       state.active = await ResearchAgentStorage.createConversation({ item: currentItem() || initialItem });
       state.summaries = await ResearchAgentStorage.listConversations(); await persistActiveID(); renderSessions(); renderConversation(); status.textContent = "已创建新会话。";
     };
+    const deleteSession = async (id) => {
+      if (send.disabled) { status.textContent = "请等待当前回答结束后再删除会话。"; return; }
+      const summary = state.summaries.find((entry) => entry.id === id);
+      if (!summary) return;
+      if (!doc.defaultView.confirm(`确定删除会话“${summary.title}”？此操作不能恢复；已生成的研究笔记会保留。`)) return;
+      ++state.switchRequest;
+      await ResearchAgentStorage.deleteConversation(id);
+      state.summaries = await ResearchAgentStorage.listConversations();
+      if (state.active?.id === id) {
+        state.active = state.summaries[0] ? await ResearchAgentStorage.getConversation(state.summaries[0].id) : null;
+        if (!state.active) state.active = await ResearchAgentStorage.createConversation({ item: currentItem() || initialItem });
+        state.summaries = await ResearchAgentStorage.listConversations();
+        await persistActiveID();
+      }
+      renderSessions();
+      renderConversation();
+      status.textContent = "会话已删除。";
+    };
     const bindCurrentPaper = async () => {
       const item = currentItem();
       if (!item) { status.textContent = "请先在左侧文献列表选中一篇论文。"; return; }
@@ -402,9 +425,11 @@ var ResearchAgentSidebar = {
         ragConfig = { enabled: true, collectionIDs: [selectedBase.id], knowledgeBaseTitle: selectedBase.title, useSemantic: false };
       } else {
         const paper = currentItem() || (state.active.paper?.itemID ? Zotero.Items.get(state.active.paper.itemID) : null);
-        if (!paper) { status.textContent = "未启用 RAG 时，请先在左侧选择一篇论文。"; return; }
-        try { ragConfig = { enabled: false, paperContext: await ResearchAgentIndexer.paperContext(paper) }; }
-        catch (error) { status.textContent = `无法读取当前论文：${error.message}`; return; }
+        if (!paper) ragConfig = { enabled: false };
+        else {
+          try { ragConfig = { enabled: false, paperContext: await ResearchAgentIndexer.paperContext(paper) }; }
+          catch (error) { status.textContent = `无法读取当前论文：${error.message}`; return; }
+        }
       }
       if (!existingMessage) {
         await ResearchAgentStorage.appendMessage(state.active, "user", question);

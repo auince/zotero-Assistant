@@ -37,7 +37,9 @@ var ResearchAgentTools = {
   ],
 
   definitionsFor({ ragEnabled = true } = {}) {
-    return ragEnabled ? this.definitions : [];
+    // RAG controls access to the user's local collection only. External research
+    // remains an optional agent tool in every chat, rather than a separate mode.
+    return this.definitions.filter((definition) => ragEnabled || definition.function.name !== "search_knowledge_base");
   },
 
   async execute(name, args, scope = {}) {

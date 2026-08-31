@@ -1,7 +1,7 @@
 /* global Zotero, ResearchAgentMemory, ResearchAgentTools */
 
 var ResearchAgentAgent = {
-  systemPrompt: `You are a Zotero research agent. Use search_knowledge_base before making claims about the user's library. Use search_web for current external facts, search_arxiv for scholarly preprints, and search_github_code for implementation questions. Cite Zotero evidence as [item key] and external sources as Markdown links. Be concise, distinguish evidence from inference, and do not invent sources.`,
+  systemPrompt: `You are a Zotero research agent. When the local knowledge-base tool is available, use search_knowledge_base before making claims about the user's library. Decide for each question whether external evidence would materially improve the answer: use search_web for current or external facts, search_arxiv for scholarly preprints, and search_github_code for implementation questions. Do not call a tool merely for show, but do not avoid a useful tool. Cite Zotero evidence as [item key] and external sources as Markdown links. Be concise, distinguish evidence from inference, and do not invent sources.`,
 
   async answer(question, { onEvent, conversation, rag } = {}) {
     const apiKey = Zotero.Prefs.get("extensions.researchAgent.deepseekAPIKey", true);
@@ -24,8 +24,10 @@ var ResearchAgentAgent = {
     if (ragEnabled) {
       messages.splice(1, 0, { role: "system", content: `知识库检索已启用。本地知识库证据只能来自用户选择的知识库（${rag?.knowledgeBaseTitle || "当前选择"}），不得把未选择的本地文献作为证据。此范围限制只适用于 search_knowledge_base；需要外部最新信息、预印本或源码时，可分别使用 search_web、search_arxiv、search_github_code，并在最终回答中明确标注外部来源。` });
     } else {
-      if (!rag?.paperContext) throw new Error("未启用 RAG 时，请先在左侧选择一篇论文。 ");
-      messages.splice(1, 0, { role: "system", content: `知识库与网络工具均已关闭。只分析下面这篇当前论文，不能引用或推断其外部内容：\n\n${rag.paperContext}` });
+      const paperContext = rag?.paperContext
+        ? `当前左侧论文的内容如下；可据此进行分析：\n\n${rag.paperContext}`
+        : "当前没有提供左侧论文内容；请根据用户问题正常回答。";
+      messages.splice(1, 0, { role: "system", content: `本地知识库检索未启用，因此不能调用 search_knowledge_base。${paperContext}\n\n网页、arXiv 与 GitHub 是按需可用的外部工具：只有在它们能显著改善事实时效性、论文查找或源码判断时才调用；不要为了调用工具而调用。` });
     }
     const citations = [];
     for (let step = 0; step < 8; step++) {

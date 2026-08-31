@@ -195,6 +195,23 @@ var ResearchAgentStorage = {
     return this.readJSON(this.conversationPath(id), null);
   },
 
+  async deleteConversation(id) {
+    if (!id) throw new Error("缺少需要删除的会话。");
+    await this.initialize();
+    const index = await this.getConversationIndex();
+    const position = index.conversations.findIndex((entry) => entry.id === id);
+    if (position === -1) return false;
+
+    // Only remove a path derived from an ID already present in the conversation
+    // index. Conversation notes intentionally remain: they are a user's durable
+    // research record rather than part of the transient chat log.
+    const file = Zotero.File.pathToFile(this.conversationPath(id));
+    if (file.exists()) file.remove(false);
+    index.conversations.splice(position, 1);
+    await this.writeJSON(this.conversationIndexPath, index);
+    return true;
+  },
+
   async appendMessage(conversation, role, content, extra = {}) {
     const message = this.message(role, content, null, extra);
     conversation.messages.push(message);
