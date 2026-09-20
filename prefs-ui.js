@@ -36,6 +36,7 @@ var ResearchAgentPreferences = {
     doc.getElementById("ra-chat-provider").addEventListener("change", (event) => this.applyChatProvider(event.target.value));
     doc.getElementById("ra-fetch-deepseek-models").addEventListener("click", () => this.safely("ra-deepseek-status", () => this.fetchChatModels()));
     doc.getElementById("ra-test-deepseek").addEventListener("click", () => this.safely("ra-deepseek-status", () => this.testChat()));
+    doc.getElementById("ra-check-deepseek-balance").addEventListener("click", () => this.safely("ra-deepseek-status", () => this.checkDeepSeekBalance()));
     doc.getElementById("ra-fetch-siliconflow-models").addEventListener("click", () => this.safely("ra-siliconflow-status", () => this.fetchKnowledgeModels()));
     doc.getElementById("ra-test-siliconflow").addEventListener("click", () => this.safely("ra-siliconflow-status", () => this.testKnowledge()));
     doc.getElementById("ra-search-skills").addEventListener("click", () => this.safely("ra-skill-status", () => this.searchSkills()));
@@ -147,16 +148,35 @@ var ResearchAgentPreferences = {
   },
 
   async request(method, url, key, body) {
-    const response = await Zotero.HTTP.request(method, url, {
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: body ? JSON.stringify(body) : undefined,
-      responseType: "text",
-      timeout: 30000
-    });
+    let response;
+    try {
+      response = await Zotero.HTTP.request(method, url, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: body ? JSON.stringify(body) : undefined,
+        responseType: "text",
+        timeout: 30000
+      });
+    } catch (error) {
+      throw this.describeServiceError(error);
+    }
     const text = response.responseText || response.response || "{}";
     const data = JSON.parse(text);
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
     return data;
+  },
+
+  describeServiceError(error) {
+    const status = Number(error?.xmlhttp?.status || error?.status || 0);
+    const body = error?.xmlhttp?.responseText || error?.responseText || "";
+    const message = `${error?.message || ""}\n${body}`;
+    if (status === 402 || /insufficient[ _-]?balance|余额不足/i.test(message)) {
+      return new Error("模型服务余额不足（HTTP 402）。请在服务商账户充值，或切换到另一个已配置的模型厂商后重新测试。DeepSeek 可点击“检查 API 余额”查看状态。");
+    }
+    return error instanceof Error ? error : new Error(String(error || "服务请求失败。"));
+  },
+
+  isOfficialDeepSeek(baseURL) {
+    return String(baseURL || "").replace(/\/+$/, "") === "https://api.deepseek.com";
   },
 
   async publicRequest(url) {
@@ -412,6 +432,25 @@ var ResearchAgentPreferences = {
     } catch (error) {
       this.setStatus("ra-deepseek-status", `连接测试失败：${error.message}`, true);
     }
+  },
+
+  async checkDeepSeekBalance() {
+    const key = this.value("ra-deepseek-key");
+    const baseURL = this.value("ra-deepseek-url");
+    if (!key || !baseURL) throw new Error("请先填写对话模型的 API 密钥和 API 地址。");
+    if (!this.isOfficialDeepSeek(baseURL)) {
+      this.setStatus("ra-deepseek-status", "余额查询仅适用于官方 DeepSeek 地址（https://api.deepseek.com）。当前厂商请使用其控制台查询余额。", true);
+      return;
+    }
+    this.setStatus("ra-deepseek-status", "正在查询 DeepSeek API 余额…");
+    const data = await this.request("GET", this.endpoint(baseURL, "/user/balance"), key);
+    const balances = Array.isArray(data.balance_infos) ? data.balance_infos : [];
+    const detail = balances.map((entry) => `${entry.currency || "余额"} ${entry.total_balance ?? "未知"}`).join("； ");
+    if (!data.is_available) {
+      this.setStatus("ra-deepseek-status", `DeepSeek API 当前不可用：余额不足。${detail ? `可用余额：${detail}。` : ""}请前往 DeepSeek 平台充值后再试。`, true);
+      return;
+    }
+    this.setStatus("ra-deepseek-status", `DeepSeek API 余额可用${detail ? `：${detail}` : ""}。`);
   },
 
   async testKnowledge() {

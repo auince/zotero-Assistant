@@ -102,20 +102,25 @@ var ResearchAgentAgent = {
     };
     const payload = { model, messages, temperature: 0.2, stream: true };
     if (tools?.length) { payload.tools = tools; payload.tool_choice = "auto"; }
-    const xhr = await Zotero.HTTP.request("POST", `${baseURL}/chat/completions`, {
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(payload),
-      responseType: "text",
-      timeout: 0,
-      requestObserver: (request) => {
-        request.onprogress = () => {
-          const text = request.responseText || "";
-          buffer += text.slice(received);
-          received = text.length;
-          consume();
-        };
-      }
-    });
+    let xhr;
+    try {
+      xhr = await Zotero.HTTP.request("POST", `${baseURL}/chat/completions`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify(payload),
+        responseType: "text",
+        timeout: 0,
+        requestObserver: (request) => {
+          request.onprogress = () => {
+            const text = request.responseText || "";
+            buffer += text.slice(received);
+            received = text.length;
+            consume();
+          };
+        }
+      });
+    } catch (error) {
+      throw this.describeRequestError(error);
+    }
     const text = xhr.responseText || xhr.response || "";
     buffer += text.slice(received);
     consume(true);
@@ -128,6 +133,16 @@ var ResearchAgentAgent = {
       return message;
     }
     return { role: "assistant", content: state.content, reasoning_content: state.reasoning, tool_calls: state.toolCalls.filter((call) => call.function.name) };
+  },
+
+  describeRequestError(error) {
+    const status = Number(error?.xmlhttp?.status || error?.status || 0);
+    const body = error?.xmlhttp?.responseText || error?.responseText || "";
+    const message = `${error?.message || ""}\n${body}`;
+    if (status === 402 || /insufficient[ _-]?balance|余额不足/i.test(message)) {
+      return new Error("模型服务余额不足（HTTP 402）。这不是插件或模型配置错误：请在服务商账户充值，或在 Zotero 设置 → Research Agent 切换到另一个已配置且可用的模型厂商；DeepSeek 可使用“检查 API 余额”确认后再重试。");
+    }
+    return error instanceof Error ? error : new Error(String(error || "模型服务请求失败。"));
   },
 
   emit(onEvent, event) {
