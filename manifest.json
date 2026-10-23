@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Research Agent for Zotero",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "description": "Local collection knowledge base and DeepSeek research agent for Zotero.",
   "author": "Local prototype",
   "icons": {
@@ -11,7 +11,7 @@
   "applications": {
     "zotero": {
       "id": "research-agent@zotero.example.com",
-      "update_url": "https://github.com/auince/zotero-Agent/releases/latest/download/updates.json",
+      "update_url": "https://github.com/auince/zotero-Assistant/releases/latest/download/updates.json",
       "strict_min_version": "7.9.9",
       "strict_max_version": "10.9.9"
     }

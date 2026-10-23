@@ -35,7 +35,7 @@ jobs:
                 "updates": [
                   {
                     "version": "${version}",
-                    "update_link": "https://github.com/auince/zotero-Agent/releases/download/${GITHUB_REF_NAME}/research-agent-${version}.xpi",
+                    "update_link": "https://github.com/auince/zotero-Assistant/releases/download/${GITHUB_REF_NAME}/research-agent-${version}.xpi",
                     "update_hash": "sha256:${hash}",
                     "applications": {
                       "zotero": {
