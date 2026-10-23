@@ -88,6 +88,7 @@ var ResearchAgentSidebar = {
       .research-agent-sessionbar { display:grid; grid-template-columns:minmax(0,1fr) max-content; flex:0 0 auto; align-items:center; gap:6px; min-width:0; }.research-agent-session-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }.research-agent-sessionbar .research-agent-primary{min-width:max-content;white-space:nowrap}.research-agent button { min-height:29px; padding:5px 9px; border:1px solid var(--ra-border); border-radius:7px; background:var(--material-sidepane,#fff); color:inherit; font:menu; cursor:pointer; }.research-agent button:hover:not(:disabled){border-color:var(--ra-accent);background:var(--ra-accent-weak)}.research-agent button:disabled{cursor:wait;opacity:.65}.research-agent-primary{border-color:var(--ra-accent)!important;background:var(--ra-accent)!important;color:#fff!important;font-weight:650!important}
       .research-agent-session-drawer { display:none; flex:1 1 0; flex-direction:column; gap:8px; min-height:0; overflow:hidden; padding:10px; border:1px solid var(--ra-border); border-radius:10px; background:color-mix(in srgb,var(--ra-accent) 4%,transparent); }.research-agent-session-drawer.is-open{display:flex}.research-agent-session-list{display:flex;flex:1 1 0;flex-direction:column;align-items:stretch;gap:7px;min-height:0;overflow-x:hidden;overflow-y:auto}.research-agent-session-card{display:flex;flex:0 0 auto;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--ra-border);border-radius:8px;background:var(--ra-surface-raised)}.research-agent-session-card.is-active{border-color:var(--ra-accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ra-accent) 18%,transparent)}.research-agent-session-item{box-sizing:border-box;display:block;flex:0 0 auto;width:100%;min-height:auto!important;padding:7px 8px!important;overflow:hidden;border:0!important;border-radius:0!important;background:transparent!important;text-align:left;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.research-agent-session-card.is-active .research-agent-session-item{background:var(--ra-accent-weak)!important}.research-agent-session-paper{display:-webkit-box;min-width:0;max-height:2.7em;padding:5px 8px;overflow:hidden;border-top:1px solid var(--ra-border);-webkit-box-orient:vertical;-webkit-line-clamp:2;color:var(--fill-secondary,#687583);font-size:.78em;line-height:1.35;overflow-wrap:anywhere}.research-agent-session-actions{display:flex;justify-content:flex-end;padding:5px 7px;border-top:1px solid var(--ra-border)}.research-agent-session-delete{min-height:24px!important;padding:2px 7px!important;border-color:transparent!important;background:transparent!important;color:var(--ra-muted)!important;font-size:.8em}.research-agent-session-delete:hover:not(:disabled){border-color:#b84a4a!important;background:color-mix(in srgb,#b84a4a 10%,transparent)!important;color:#b84a4a!important}.research-agent-session-drawer > .research-agent-session-toggle,.research-agent-session-drawer > button{flex:0 0 auto}.research-agent-session-toggle{display:flex;align-items:center;gap:6px;color:var(--fill-secondary,#687583);font-size:.88em}
       .research-agent-rag { display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding:8px 10px; border:1px solid var(--ra-border); border-radius:10px; background:color-mix(in srgb,var(--ra-accent) 3%,transparent); }.research-agent-rag label{display:flex;align-items:center;gap:5px;font-weight:650}.research-agent-rag select{flex:1;min-width:150px;box-sizing:border-box;min-height:28px;border:1px solid var(--ra-border);border-radius:6px;background:var(--material-sidepane,#fff);color:inherit;font:menu}.research-agent-rag select:disabled{opacity:.55}.research-agent-rag-note{width:100%;color:var(--fill-secondary,#687583);font-size:.82em}
+      .research-agent-learning{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--ra-border);border-radius:10px;background:var(--ra-subtle)}.research-agent-learning.is-enabled{border-color:color-mix(in srgb,var(--ra-accent) 48%,var(--ra-border));background:color-mix(in srgb,var(--ra-accent) 7%,var(--ra-surface-raised))}.research-agent-learning-label{display:flex;align-items:center;gap:5px;font-weight:650}.research-agent-learning-note{flex:1 1 190px;min-width:0;color:var(--ra-muted);font-size:.82em;line-height:1.35}.research-agent-learning-actions{display:flex;flex:1 0 100%;flex-wrap:wrap;gap:5px}.research-agent-learning-actions button{min-height:24px;padding:2px 7px;border-radius:999px;color:var(--ra-muted);font-size:.8em}.research-agent-learning.is-enabled .research-agent-learning-actions button{border-color:color-mix(in srgb,var(--ra-accent) 30%,var(--ra-border));color:var(--ra-accent)}
       .research-agent-context{padding:9px 10px;border:1px solid var(--ra-border);border-radius:10px;background:color-mix(in srgb,var(--ra-accent) 4%,transparent)}.research-agent-context-label{display:block;margin-bottom:3px;color:var(--fill-secondary,#687583);font-size:.82em;font-weight:600}.research-agent-selected-item{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-weight:650;line-height:1.35}
       .research-agent-log{flex:1;min-height:200px;overflow:auto;padding:12px;border:1px solid var(--ra-border);border-radius:11px;background:var(--material-sidepane,#fff);box-shadow:inset 0 1px 0 color-mix(in srgb,currentColor 4%,transparent);line-height:1.48}.research-agent-message{margin:0 0 12px;padding:8px 10px;border-radius:9px;background:color-mix(in srgb,currentColor 4%,transparent)}.research-agent-message:last-child{margin-bottom:0}.research-agent-message.is-user{background:var(--ra-accent-weak)}.research-agent-role{display:block;margin-bottom:3px;color:var(--ra-accent);font-size:.84em;font-weight:700}.research-agent-message-content{white-space:pre-wrap}.research-agent-message-actions{display:flex;justify-content:flex-end;gap:5px;margin-top:7px}.research-agent-message-actions button{min-height:24px;padding:2px 6px;font-size:.8em}
       .research-agent-response{background:var(--material-sidepane,#fff);border:1px solid color-mix(in srgb,var(--ra-accent) 18%,var(--ra-border))}.research-agent-answer{min-height:1.4em;white-space:pre-wrap}.research-agent-trace{margin-top:9px;border:1px solid color-mix(in srgb,currentColor 10%,transparent);border-radius:8px;background:color-mix(in srgb,currentColor 2.5%,transparent)}.research-agent-trace summary{padding:7px 9px;color:var(--fill-secondary,#687583);cursor:pointer;font-size:.86em;font-weight:600}.research-agent-trace-body{display:flex;flex-direction:column;gap:5px;padding:0 8px 8px}.research-agent-trace-reasoning{padding:7px 8px;border-radius:6px;background:color-mix(in srgb,currentColor 3.5%,transparent);color:var(--fill-secondary,#687583);font-size:.88em;line-height:1.42;white-space:pre-wrap}.research-agent-tool-event{padding:6px 8px;border-radius:6px;background:#f1f3f5;color:#69727d;font-size:.84em;line-height:1.38}@media(prefers-color-scheme:dark){.research-agent-tool-event{background:#262b31;color:#b8c0ca}}
@@ -161,6 +162,12 @@ var ResearchAgentSidebar = {
     const ragSelect = doc.createElement("select"); ragSelect.disabled = true;
     const ragNote = doc.createElement("span"); ragNote.className = "research-agent-rag-note"; ragNote.textContent = "未启用 RAG：不检索本地知识库；若有当前论文会一并分析，联网、arXiv 与 GitHub 工具仍由助手按需调用。";
     rag.append(ragLabel, ragSelect, ragNote);
+    const learning = doc.createElement("div"); learning.className = "research-agent-learning";
+    const learningToggle = doc.createElement("input"); learningToggle.type = "checkbox";
+    const learningLabel = doc.createElement("label"); learningLabel.className = "research-agent-learning-label"; learningLabel.append(learningToggle, doc.createTextNode("学习辅导模式"));
+    const learningNote = doc.createElement("span"); learningNote.className = "research-agent-learning-note";
+    const learningActions = doc.createElement("div"); learningActions.className = "research-agent-learning-actions";
+    learning.append(learningLabel, learningNote, learningActions);
     const context = doc.createElement("div"); context.className = "research-agent-context";
     const contextLabel = doc.createElement("span"); contextLabel.className = "research-agent-context-label"; contextLabel.textContent = "本会话关联文献";
     const selected = doc.createElement("div"); selected.className = "research-agent-selected-item"; context.append(contextLabel, selected);
@@ -177,7 +184,7 @@ var ResearchAgentSidebar = {
     const send = this.button(doc, "发送", () => ask()); send.classList.add("research-agent-primary");
     const sendLine = doc.createElement("div"); sendLine.className = "research-agent-sendline";
     const hint = doc.createElement("span"); hint.className = "research-agent-hint"; hint.textContent = "Enter 发送 · ⌘ / Ctrl + Enter 换行"; sendLine.append(hint, remaining, send);
-    composer.append(input, sendLine); chatPanel.append(rag, context, quickPrompts, log, composer);
+    composer.append(input, sendLine); chatPanel.append(rag, learning, context, quickPrompts, log, composer);
     const resizeInput = () => {
       input.style.height = "auto";
       const fixedHeight = [...chatPanel.children]
@@ -217,6 +224,25 @@ var ResearchAgentSidebar = {
     ];
     quickPrompts.append(quickPromptsLabel);
     for (const [label, prompt] of readerPrompts) quickPrompts.append(this.button(doc, label, () => fillQuickPrompt(prompt)));
+    const learningPrompts = [
+      ["制定学习路线", "请基于当前主题或论文，给我一个不超过三步的学习路线：先讲最关键的直觉，再带我逐步掌握。先从第一步开始，并在结尾问我一个能检验理解的问题。"],
+      ["开始诊断", "请先用一个简短、基于当前材料的诊断问题判断我的起点。一次只问一题；我回答后再给针对性反馈和下一步。"],
+      ["给一条提示", "我暂时卡住了。请不要直接给完整答案，先给我一条最小提示，帮助我自己迈出下一步。"],
+      ["总结本轮", "请简短总结这一轮我已经理解的内容、仍可能混淆的一点，以及下一次最值得练习的一个问题。" ]
+    ];
+    const enableLearning = async () => {
+      if (!state.active?.learning?.enabled) {
+        state.active.learning = { enabled: true };
+        await ResearchAgentStorage.saveConversation(state.active);
+        state.summaries = await ResearchAgentStorage.listConversations();
+        renderSessions();
+      }
+      renderLearningMode();
+    };
+    for (const [label, prompt] of learningPrompts) {
+      const button = this.button(doc, label, () => enableLearning().then(() => fillQuickPrompt(prompt)).catch((error) => { Zotero.logError(error); status.textContent = `无法启用学习辅导：${error.message}`; }));
+      learningActions.append(button);
+    }
     const receiveSelectedText = ({ text, title, preset }) => {
       const quote = text.split(/\r?\n/).map((line) => `> ${line}`).join("\n");
       input.value = `${preset || "我在下列论文选段中遇到了问题，请帮我分析："}\n\n论文：《${title}》\n\n${quote}\n\n`;
@@ -246,6 +272,23 @@ var ResearchAgentSidebar = {
       } else {
         ragNote.textContent = "未启用 RAG：不检索本地知识库；若有当前论文会一并分析，联网、arXiv 与 GitHub 工具仍由助手按需调用。";
       }
+    });
+    const renderLearningMode = () => {
+      const enabled = Boolean(state.active?.learning?.enabled);
+      learningToggle.checked = enabled;
+      learning.classList.toggle("is-enabled", enabled);
+      learningNote.textContent = enabled
+        ? "短讲解后只问一个可回答的问题；会根据你的回答给提示或纠偏。可随时要求直接讲解。"
+        : "开启后，助手会用讲解、单题检查和针对性提示带你逐步理解；模式按会话保存。";
+    };
+    learningToggle.addEventListener("change", () => {
+      if (!state.active) return;
+      state.active.learning = { enabled: learningToggle.checked };
+      ResearchAgentStorage.saveConversation(state.active).then(async () => {
+        state.summaries = await ResearchAgentStorage.listConversations();
+        renderSessions(); renderLearningMode();
+        status.textContent = learningToggle.checked ? "已开启学习辅导模式。" : "已关闭学习辅导模式。";
+      }).catch((error) => { Zotero.logError(error); status.textContent = `无法保存学习辅导设置：${error.message}`; renderLearningMode(); });
     });
     const renderSessions = () => {
       sessionList.replaceChildren();
@@ -292,6 +335,7 @@ var ResearchAgentSidebar = {
       if (!state.active) return;
       sessionTitle.textContent = state.active.title || "新对话";
       selected.textContent = state.active.paper?.title || "未关联文献；可在会话面板中关联当前文献。";
+      renderLearningMode();
       if (!state.active.messages.length) {
         const greetingText = "这是一个本地保存的新会话。你可以提问，或先关联一篇当前文献。";
         const greeting = this.addMessage(doc, log, "助手", greetingText, false);
@@ -440,7 +484,7 @@ var ResearchAgentSidebar = {
       followLog = true; scrollToLatest(true);
       const responseView = this.createResponseView(doc, log, scrollToLatest);
       try {
-        const result = await ResearchAgentAgent.answer(question, { conversation: state.active, rag: ragConfig, onEvent: (event) => responseView.handle(event) });
+        const result = await ResearchAgentAgent.answer(question, { conversation: state.active, rag: ragConfig, learning: state.active.learning, onEvent: (event) => responseView.handle(event) });
         responseView.finish(result);
         await ResearchAgentStorage.appendMessage(state.active, "assistant", result.answer, { citations: result.citations, trace: responseView.trace() });
         state.summaries = await ResearchAgentStorage.listConversations(); renderSessions(); renderConversation(); updateRemaining(); status.textContent = "回答完成，已保存到本地会话文件。";

@@ -17,7 +17,18 @@ var ResearchAgentAgent = {
 
 证据与工具：当本地知识库工具可用时，涉及用户文献库的事实先检索 search_knowledge_base。根据问题决定外部证据是否能实质改善答案：时效性或外部事实用 search_web，预印本和论文线索用 search_arxiv，源码与实现问题用 search_github_code。不要为了调用工具而调用，也不要回避有价值的工具。仅引用实际检索到的来源：Zotero 证据写作 [item key]，外部来源用 Markdown 链接。不要编造文献、数据、引用或作者观点。`,
 
-  async answer(question, { onEvent, conversation, rag } = {}) {
+  learningPrompt: `当前会话处于学习辅导模式。目标是帮助用户真正理解和迁移知识，而非只快速交付答案。
+
+交互规则：
+1. 先用 2–5 句建立必要的直觉或框架；随后只提出一个清晰、基于刚刚讲过内容就能回答的检查问题。不要连续抛出问题，也不要问用户尚未学到的内容。
+2. 用户作答后，先指出其推理中具体正确的部分，再指出一个最关键的遗漏或误解；给一条由弱到强的提示，并只追问下一步最有价值的问题。
+3. 当用户明确说“直接讲解”“给答案”“不会”或需要赶时间时，立即给出完整、清楚的解释或解题过程；不要用苏格拉底式追问阻挡帮助。解释后可邀请用户用自己的话复述或做一道迁移小题。
+4. 用当前论文、已检索到的文献和可靠外部来源作为学习材料。讲清概念之间的因果、前提、反例和适用边界；不要把未经验证的内容当作已掌握。
+5. 语言温和而具体，避免夸张表扬、说教和固定口号。每轮的目标是推进一个小台阶；复杂主题可先给不超过三步的学习路线。
+
+输出可按需要包含“关键直觉”“试着判断”“提示”“完整讲解”这些短标题，但不要机械套用。`,
+
+  async answer(question, { onEvent, conversation, rag, learning } = {}) {
     const apiKey = Zotero.Prefs.get("extensions.researchAgent.deepseekAPIKey", true);
     if (!apiKey) throw new Error("请先在 Zotero 设置 → Research Agent 中填写对话模型 API 密钥。");
     const ragEnabled = rag ? Boolean(rag.enabled) : true;
@@ -35,6 +46,7 @@ var ResearchAgentAgent = {
       messages.splice(1, 0, { role: "system", content: this.skillPrompt(installedSkills) });
       this.emit(onEvent, { type: "memory", text: `已加载 ${installedSkills.length} 个用户启用的技能：${installedSkills.map((skill) => skill.name).join("、")}。` });
     }
+    if (learning?.enabled) messages.splice(1, 0, { role: "system", content: this.learningPrompt });
     if (ragEnabled) {
       messages.splice(1, 0, { role: "system", content: `知识库检索已启用。本地知识库证据只能来自用户选择的知识库（${rag?.knowledgeBaseTitle || "当前选择"}），不得把未选择的本地文献作为证据。此范围限制只适用于 search_knowledge_base；需要外部最新信息、预印本或源码时，可分别使用 search_web、search_arxiv、search_github_code，并在最终回答中明确标注外部来源。` });
     } else {

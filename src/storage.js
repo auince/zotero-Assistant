@@ -97,7 +97,10 @@ var ResearchAgentStorage = {
       updatedAt: at,
       paper: item ? this.paperFromItem(item) : null,
       messages: [],
-      memory: { rootSummary: "", layers: [], compressedMessageIDs: [] }
+      memory: { rootSummary: "", layers: [], compressedMessageIDs: [] },
+      // Teaching style is per conversation so a research discussion never
+      // unexpectedly becomes a tutorial after changing sessions.
+      learning: { enabled: false }
     };
     if (conversation.titleMode === "auto") conversation.title = this.autoTitle(conversation);
     return conversation;
@@ -146,6 +149,8 @@ var ResearchAgentStorage = {
     conversation.updatedAt = new Date().toISOString();
     conversation.messages ||= [];
     conversation.memory ||= { rootSummary: "", layers: [], compressedMessageIDs: [] };
+    conversation.learning ||= { enabled: false };
+    conversation.learning.enabled = Boolean(conversation.learning.enabled);
     this.refreshAutoTitle(conversation);
     await this.writeJSON(this.conversationPath(conversation.id), conversation);
     const index = suppliedIndex || await this.getConversationIndex();
