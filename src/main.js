@@ -2,7 +2,7 @@
 
 Services.scriptloader.loadSubScript(`${ResearchAgentRootURI}vendor/katex/katex.min.js`);
 
-for (const module of ["storage", "memory", "jobs", "semantic", "indexer", "tools", "wiki", "research", "agent", "daily-notes", "markdown", "sidebar"]) {
+for (const module of ["storage", "memory", "jobs", "semantic", "indexer", "tools", "wiki", "research", "reproduction", "agent", "daily-notes", "markdown", "sidebar"]) {
   Services.scriptloader.loadSubScript(`${ResearchAgentRootURI}src/${module}.js`);
 }
 

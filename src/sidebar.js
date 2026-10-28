@@ -1,4 +1,4 @@
-/* global Zotero, ResearchAgentAgent, ResearchAgentIndexer, ResearchAgentJobs, ResearchAgentDailyNotes, ResearchAgentStorage, ResearchAgentMemory, ResearchAgentMarkdown, ResearchAgentTools, ResearchAgentWiki, ResearchAgentResearch */
+/* global Zotero, ResearchAgentAgent, ResearchAgentIndexer, ResearchAgentJobs, ResearchAgentDailyNotes, ResearchAgentStorage, ResearchAgentMemory, ResearchAgentMarkdown, ResearchAgentTools, ResearchAgentWiki, ResearchAgentResearch, ResearchAgentReproduction */
 
 var ResearchAgentSidebar = {
   sectionID: null,
@@ -118,6 +118,7 @@ var ResearchAgentSidebar = {
       .research-agent-quick-prompts{display:flex;flex-wrap:wrap;gap:5px;padding:0 1px}.research-agent-quick-prompts-label{width:100%;margin-bottom:1px;color:var(--ra-muted);font-size:.78em;font-weight:600}.research-agent-quick-prompts button{min-height:25px;padding:3px 7px;border-radius:999px;background:transparent;color:var(--ra-muted);font-size:.8em}.research-agent-quick-prompts button:hover:not(:disabled){color:var(--ra-accent);background:var(--ra-accent-weak)}
       .research-agent-math{color:inherit}.research-agent-math.is-display{display:block;max-width:100%;margin:.8em 0;padding:.55em .7em;overflow-x:auto;border:1px solid var(--ra-border);border-radius:7px;background:var(--ra-subtle);text-align:center}.research-agent-math.has-error{white-space:pre-wrap;text-align:left;color:var(--ra-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.research-agent-math .katex-display{margin:0}.research-agent-math .katex{font-size:1.04em}
       .research-agent-notes-card{flex:1 1 0;min-height:0;overflow:hidden}.research-agent-notes-layout{display:grid;grid-template-columns:minmax(150px,34%) minmax(0,1fr);flex:1 1 0;min-height:0;gap:8px;overflow:hidden}.research-agent-note-list{display:flex;min-width:0;min-height:0;flex-direction:column;gap:6px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}.research-agent-note-item{box-sizing:border-box;display:flex;flex:0 0 auto;flex-direction:column;align-items:stretch;gap:3px;width:100%;min-width:0;min-height:50px!important;padding:7px 8px!important;overflow:hidden;text-align:left}.research-agent-note-item.is-active{border-color:var(--ra-accent);background:var(--ra-accent-weak)}.research-agent-note-title{display:block;min-width:0;overflow:hidden;font-weight:600;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.research-agent-note-item small{display:block;min-width:0;overflow:hidden;color:var(--ra-muted);font-size:.78em;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.research-agent-note-preview{box-sizing:border-box;min-width:0;min-height:0;overflow-x:hidden;overflow-y:scroll;overscroll-behavior:contain;padding:11px;border:1px solid var(--ra-border);border-radius:9px;background:var(--ra-surface);scrollbar-gutter:stable}.research-agent-note-empty{margin:auto;color:var(--ra-muted);text-align:center}.research-agent-note-preview .research-agent-message-content{min-width:0;white-space:normal;overflow-wrap:anywhere}.research-agent-note-actions{display:flex;flex:0 0 auto;flex-wrap:wrap;gap:6px}@media(max-width:480px){.research-agent-notes-layout{grid-template-columns:1fr;grid-template-rows:minmax(140px,34%) minmax(0,1fr)}.research-agent-note-list{border-bottom:1px solid var(--ra-border);padding-bottom:6px}}
+      .research-agent-session-resources{display:flex;flex-direction:column;gap:8px;min-width:0}.research-agent-reproduction{min-width:0;border:1px solid var(--ra-border);border-radius:9px;background:var(--ra-subtle)}.research-agent-reproduction summary{padding:8px 10px;cursor:pointer;font-weight:650}.research-agent-reproduction-body{display:flex;flex-direction:column;gap:7px;padding:0 9px 9px}.research-agent-reproduction-note{color:var(--ra-muted);font-size:.8em;line-height:1.35}.research-agent-reproduction-input{box-sizing:border-box;width:100%;min-width:0;min-height:29px;padding:6px 8px;border:1px solid var(--ra-border);border-radius:6px;background:var(--ra-surface-raised);color:FieldText;font:menu}.research-agent-reproduction-path{overflow-wrap:anywhere;color:var(--ra-muted);font-size:.8em}.research-agent-reproduction-actions{display:flex;flex-wrap:wrap;gap:5px}.research-agent-reproduction-actions button{min-height:25px;padding:3px 7px;font-size:.8em}.research-agent-reproduction-log{display:flex;flex-direction:column;gap:5px;max-height:150px;overflow:auto;padding:7px;border:1px solid var(--ra-border);border-radius:7px;background:var(--ra-surface);scrollbar-gutter:stable}.research-agent-reproduction-entry{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.81em;line-height:1.38}.research-agent-reproduction-entry.is-user{color:var(--ra-accent);font-weight:600}.research-agent-reproduction-prompt{min-height:64px;max-height:150px}.research-agent button:focus-visible,.research-agent input:focus-visible,.research-agent textarea:focus-visible,.research-agent summary:focus-visible{outline:2px solid color-mix(in srgb,var(--ra-accent) 58%,transparent);outline-offset:1px}
     `;
     body.append(style);
     const root = doc.createElement("div"); root.className = "research-agent";
@@ -146,7 +147,7 @@ var ResearchAgentSidebar = {
       if (page === "notes") renderNotes().catch((error) => { Zotero.logError(error); status.textContent = `无法读取笔记：${error.message}`; });
     };
 
-    const state = { active: null, summaries: [], switchRequest: 0, deepResearch: false, researchTask: null };
+    const state = { active: null, summaries: [], switchRequest: 0, deepResearch: false, researchTask: null, reproduction: null };
     const sessionBar = doc.createElement("div"); sessionBar.className = "research-agent-sessionbar";
     const sessionTitle = doc.createElement("div"); sessionTitle.className = "research-agent-session-title";
     const newSession = this.button(doc, "新对话", () => createSession()); newSession.classList.add("research-agent-primary"); sessionBar.append(sessionTitle, newSession);
@@ -175,6 +176,23 @@ var ResearchAgentSidebar = {
     const context = doc.createElement("div"); context.className = "research-agent-context";
     const contextLabel = doc.createElement("span"); contextLabel.className = "research-agent-context-label"; contextLabel.textContent = "本会话关联文献";
     const selected = doc.createElement("div"); selected.className = "research-agent-selected-item"; context.append(contextLabel, selected);
+    const resources = doc.createElement("div"); resources.className = "research-agent-session-resources";
+    const reproduction = doc.createElement("details"); reproduction.className = "research-agent-reproduction";
+    const reproductionSummary = doc.createElement("summary"); reproductionSummary.textContent = "代码复现工作区（服务器 Pi）";
+    const reproductionBody = doc.createElement("div"); reproductionBody.className = "research-agent-reproduction-body";
+    const reproductionNote = doc.createElement("div"); reproductionNote.className = "research-agent-reproduction-note";
+    const repositoryInput = doc.createElement("input"); repositoryInput.className = "research-agent-reproduction-input"; repositoryInput.type = "url"; repositoryInput.placeholder = "代码仓库地址（HTTPS 或 SSH）"; repositoryInput.setAttribute("aria-label", "代码仓库地址");
+    const reproductionPath = doc.createElement("div"); reproductionPath.className = "research-agent-reproduction-path";
+    const reproductionActions = doc.createElement("div"); reproductionActions.className = "research-agent-reproduction-actions";
+    const testServer = this.button(doc, "测试服务器", () => testReproductionServer());
+    const prepareWorkspace = this.button(doc, "创建/更新工作区", () => prepareReproductionWorkspace());
+    const stopReproduction = this.button(doc, "停止", () => stopReproductionTask());
+    reproductionActions.append(testServer, prepareWorkspace, stopReproduction);
+    const reproductionLog = doc.createElement("div"); reproductionLog.className = "research-agent-reproduction-log";
+    const reproductionPrompt = doc.createElement("textarea"); reproductionPrompt.className = "research-agent-reproduction-input research-agent-reproduction-prompt"; reproductionPrompt.placeholder = "告诉 Pi 要复现、运行或排查什么…"; reproductionPrompt.setAttribute("aria-label", "代码复现任务");
+    const runReproduction = this.button(doc, "交给 Pi 执行", () => startReproductionTask()); runReproduction.classList.add("research-agent-primary");
+    reproductionBody.append(reproductionNote, repositoryInput, reproductionPath, reproductionActions, reproductionLog, reproductionPrompt, runReproduction);
+    reproduction.append(reproductionSummary, reproductionBody); resources.append(context, reproduction);
     const quickPrompts = doc.createElement("div"); quickPrompts.className = "research-agent-quick-prompts";
     const quickPromptsLabel = doc.createElement("span"); quickPromptsLabel.className = "research-agent-quick-prompts-label"; quickPromptsLabel.textContent = "论文阅读快捷问题";
     const log = doc.createElement("div"); log.className = "research-agent-log";
@@ -188,7 +206,7 @@ var ResearchAgentSidebar = {
     const send = this.button(doc, "发送", () => ask()); send.classList.add("research-agent-primary");
     const sendLine = doc.createElement("div"); sendLine.className = "research-agent-sendline";
     const hint = doc.createElement("span"); hint.className = "research-agent-hint"; hint.textContent = "Enter 发送 · ⌘ / Ctrl + Enter 换行"; sendLine.append(hint, remaining, send);
-    composer.append(input, sendLine); chatPanel.append(learning, deep, context, quickPrompts, log, composer);
+    composer.append(input, sendLine); chatPanel.append(learning, deep, resources, quickPrompts, log, composer);
     const resizeInput = () => {
       input.style.height = "auto";
       const fixedHeight = [...chatPanel.children]
@@ -304,6 +322,76 @@ var ResearchAgentSidebar = {
       deepToggle.checked = true;
       await ask({ question: task.question, existingMessage: true, researchTask: task });
     };
+    const renderReproduction = () => {
+      const session = state.reproduction;
+      const configuration = ResearchAgentReproduction.configuration();
+      const configured = Boolean(configuration.host && configuration.projectRoot);
+      if (doc.activeElement !== repositoryInput) repositoryInput.value = session?.repositoryURL || "";
+      repositoryInput.disabled = !configured;
+      testServer.disabled = !configured || session?.status === "connecting";
+      prepareWorkspace.disabled = !configured || !session?.repositoryURL || ["preparing", "running"].includes(session?.status);
+      runReproduction.disabled = !configured || !session?.serverPath || session?.status === "running";
+      stopReproduction.hidden = session?.status !== "running";
+      reproductionPath.textContent = session?.serverPath ? `服务器工作区：${session.serverPath}` : "工作区：填写仓库地址后将显示在统一项目根目录下的位置。";
+      reproductionNote.textContent = configured
+        ? `SSH：${configuration.host} · 项目根目录：${configuration.projectRoot}。凭据由本机 SSH 配置与服务器 Pi 管理。`
+        : "请先在 Zotero 设置 → 研究助手 → 服务器代码复现（Pi）填写 SSH 配置别名和服务器项目根目录。";
+      reproductionLog.replaceChildren();
+      const history = [...(session?.messages || []).slice(-4), ...(session?.events || []).slice(-3).map((event) => ({ role: "event", content: event.text }))];
+      if (session?.status === "running" && session.liveAnswer) history.push({ role: "assistant", content: session.liveAnswer });
+      if (!history.length) {
+        const empty = doc.createElement("div"); empty.className = "research-agent-reproduction-entry";
+        empty.textContent = "本会话的仓库与 Pi 对话会保存在本地。先测试服务器，再创建工作区。";
+        reproductionLog.append(empty);
+      }
+      for (const entry of history) {
+        const line = doc.createElement("div"); line.className = `research-agent-reproduction-entry${entry.role === "user" ? " is-user" : ""}`;
+        line.textContent = `${entry.role === "user" ? "你：" : entry.role === "assistant" ? "Pi：" : "状态："}${entry.content || ""}`;
+        reproductionLog.append(line);
+      }
+    };
+    const refreshReproduction = async () => {
+      state.reproduction = state.active ? await ResearchAgentReproduction.forConversation(state.active) : null;
+      renderReproduction();
+    };
+    const saveReproductionRepository = async () => {
+      if (!state.reproduction) await refreshReproduction();
+      state.reproduction = await ResearchAgentReproduction.setRepository(state.reproduction, repositoryInput.value);
+      renderReproduction();
+      return state.reproduction;
+    };
+    const testReproductionServer = async () => {
+      try {
+        if (!state.reproduction) await refreshReproduction();
+        status.textContent = "正在测试服务器与 Pi…";
+        await ResearchAgentReproduction.testConnection(state.reproduction);
+        renderReproduction(); status.textContent = "服务器与 Pi 连接正常。";
+      } catch (error) { Zotero.logError(error); renderReproduction(); status.textContent = `服务器连接失败：${error.message}`; }
+    };
+    const prepareReproductionWorkspace = async () => {
+      try {
+        const session = await saveReproductionRepository();
+        status.textContent = "正在创建或更新服务器工作区…";
+        await ResearchAgentReproduction.prepareWorkspace(session);
+        renderReproduction(); status.textContent = "服务器工作区已就绪。";
+      } catch (error) { Zotero.logError(error); renderReproduction(); status.textContent = `无法准备工作区：${error.message}`; }
+    };
+    const startReproductionTask = async () => {
+      try {
+        const session = await saveReproductionRepository();
+        await ResearchAgentReproduction.startPi(session, reproductionPrompt.value, { onUpdate: (updated) => { if (state.reproduction?.id === updated.id) { state.reproduction = updated; renderReproduction(); } } });
+        reproductionPrompt.value = ""; renderReproduction(); status.textContent = "Pi 正在服务器上执行；可继续阅读或切换 Zotero 页面。";
+      } catch (error) { Zotero.logError(error); renderReproduction(); status.textContent = `无法启动 Pi：${error.message}`; }
+    };
+    const stopReproductionTask = async () => {
+      if (!state.reproduction) return;
+      await ResearchAgentReproduction.cancel(state.reproduction);
+      renderReproduction(); status.textContent = "已请求停止代码复现任务。";
+    };
+    repositoryInput.addEventListener("change", () => saveReproductionRepository().catch((error) => { Zotero.logError(error); status.textContent = `无法保存仓库地址：${error.message}`; renderReproduction(); }));
+    reproductionPrompt.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) { event.preventDefault(); startReproductionTask(); }
+    });
     deepToggle.addEventListener("change", () => { state.deepResearch = deepToggle.checked; renderDeepResearch(); });
     learningToggle.addEventListener("change", () => {
       if (!state.active) return;
@@ -361,6 +449,7 @@ var ResearchAgentSidebar = {
       selected.textContent = state.active.paper?.title || "未关联文献；可在会话面板中关联当前文献。";
       renderLearningMode();
       renderDeepResearch();
+      renderReproduction();
       if (!state.active.messages.length) {
         const greetingText = "这是一个本地保存的新会话。你可以提问，或先关联一篇当前文献。";
         const greeting = this.addMessage(doc, log, "助手", greetingText, false);
@@ -406,6 +495,7 @@ var ResearchAgentSidebar = {
       await persistActiveID();
       if (request !== state.switchRequest) return;
       await refreshResearchTask();
+      await refreshReproduction();
       renderSessions();
       renderConversation();
       // Show the selected session immediately. Paper synchronisation may cause Zotero
@@ -418,6 +508,7 @@ var ResearchAgentSidebar = {
     const createSession = async () => {
       state.active = await ResearchAgentStorage.createConversation({ item: currentItem() || initialItem });
       state.researchTask = null;
+      await refreshReproduction();
       state.summaries = await ResearchAgentStorage.listConversations(); await persistActiveID(); renderSessions(); renderConversation(); status.textContent = "已创建新会话。";
     };
     const deleteSession = async (id) => {
@@ -435,6 +526,7 @@ var ResearchAgentSidebar = {
         await persistActiveID();
       }
       await refreshResearchTask();
+      await refreshReproduction();
       renderSessions();
       renderConversation();
       status.textContent = "会话已删除。";
@@ -442,7 +534,9 @@ var ResearchAgentSidebar = {
     const bindCurrentPaper = async () => {
       const item = currentItem();
       if (!item) { status.textContent = "请先在左侧文献列表选中一篇论文。"; return; }
-      state.active.paper = ResearchAgentStorage.paperFromItem(item); await ResearchAgentStorage.saveConversation(state.active); state.summaries = await ResearchAgentStorage.listConversations(); renderSessions(); renderConversation(); status.textContent = "已关联当前文献。";
+      state.active.paper = ResearchAgentStorage.paperFromItem(item); await ResearchAgentStorage.saveConversation(state.active);
+      if (state.reproduction) { state.reproduction.paper = state.active.paper; await ResearchAgentStorage.saveReproductionSession(state.reproduction); }
+      state.summaries = await ResearchAgentStorage.listConversations(); renderSessions(); renderConversation(); status.textContent = "已关联当前文献。";
     };
     const saveEditedMessage = async (message, content, resend) => {
       const revised = content.trim();
@@ -532,6 +626,7 @@ var ResearchAgentSidebar = {
       state.active = preferred || (state.summaries[0] && await ResearchAgentStorage.getConversation(state.summaries[0].id));
       if (!state.active) state.active = await ResearchAgentStorage.createConversation({ item: initialItem });
       await refreshResearchTask();
+      await refreshReproduction();
       state.summaries = await ResearchAgentStorage.listConversations(); renderSessions(); renderConversation(); status.textContent = "就绪。会话均保存于本地独立文件。";
     };
 

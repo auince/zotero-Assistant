@@ -16,5 +16,8 @@ assert.ok(source.includes("为已入库文献补建 Wiki"), "users must be able 
 assert.ok(source.includes("深度研究模式"), "chat must expose a deliberate deep-research mode");
 assert.ok(source.includes("继续任务"), "interrupted deep research must be resumable from the chat UI");
 assert.ok(source.includes("证据账本"), "deep-research answers must expose their evidence ledger");
+assert.ok(source.includes("代码复现工作区（服务器 Pi）"), "the session context must expose a Pi reproduction workspace");
+assert.ok(source.includes("创建/更新工作区"), "users must explicitly prepare a remote repository workspace");
+assert.ok(source.includes("交给 Pi 执行"), "the remote coding-agent action must be deliberate and visible");
 
 console.log("Sidebar shortcuts and layout contract passed.");

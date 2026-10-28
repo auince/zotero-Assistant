@@ -12,6 +12,7 @@ var ResearchAgentStorage = {
   skillsIndexPath: null,
   researchTasksPath: null,
   searchCachePath: null,
+  reproductionSessionsPath: null,
 
   async initialize() {
     if (this.root) return;
@@ -26,6 +27,7 @@ var ResearchAgentStorage = {
     this.skillsIndexPath = this.join(this.root, "skills-index.json");
     this.researchTasksPath = this.join(this.root, "research-tasks.json");
     this.searchCachePath = this.join(this.root, "search-cache.json");
+    this.reproductionSessionsPath = this.join(this.root, "reproduction-sessions.json");
     await Zotero.File.createDirectoryIfMissingAsync(this.root);
     await Zotero.File.createDirectoryIfMissingAsync(this.conversationsDirectoryPath);
   },
@@ -125,6 +127,32 @@ var ResearchAgentStorage = {
       for (const [stale] of entries.slice(0, entries.length - 240)) delete cache.entries[stale];
     }
     await this.writeJSON(this.searchCachePath, cache);
+  },
+
+  async getReproductionSessions() {
+    const index = await this.readJSON(this.reproductionSessionsPath, { version: 1, sessions: {} });
+    index.version ||= 1;
+    index.sessions ||= {};
+    return index;
+  },
+
+  async getReproductionSession(id) {
+    if (!id) return null;
+    return (await this.getReproductionSessions()).sessions[id] || null;
+  },
+
+  async getReproductionSessionForConversation(conversationID) {
+    const sessions = Object.values((await this.getReproductionSessions()).sessions || {});
+    return sessions.filter((session) => session.conversationID === conversationID)
+      .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))[0] || null;
+  },
+
+  async saveReproductionSession(session) {
+    const index = await this.getReproductionSessions();
+    session.updatedAt = new Date().toISOString();
+    index.sessions[session.id] = session;
+    await this.writeJSON(this.reproductionSessionsPath, index);
+    return session;
   },
 
   conversationPath(id) {

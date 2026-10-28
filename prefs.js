@@ -15,4 +15,7 @@ pref("extensions.researchAgent.deepResearchMaxToolCalls", 12);
 pref("extensions.researchAgent.deepResearchMaxSearchRequests", 7);
 pref("extensions.researchAgent.deepResearchMaxFetches", 3);
 pref("extensions.researchAgent.searchCacheFreshnessHours", 4);
+pref("extensions.researchAgent.reproductionSSHHost", "");
+pref("extensions.researchAgent.reproductionProjectRoot", "");
+pref("extensions.researchAgent.reproductionPiCommand", "pi");
 pref("extensions.researchAgent.syncItemOnConversationSwitch", true);

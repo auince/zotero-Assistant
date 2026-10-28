@@ -17,6 +17,8 @@ const preferencesXHTML = fs.readFileSync("prefs.xhtml", "utf8");
 assert.match(preferencesXHTML, /深度研究、缓存与预算/, "settings must expose deep-research controls");
 assert.match(preferencesXHTML, /searchCacheFreshnessHours/, "settings must expose cache freshness");
 assert.match(preferencesXHTML, /deepResearchMaxToolCalls/, "settings must expose the task tool budget");
+assert.match(preferencesXHTML, /服务器代码复现（Pi）/, "settings must persist the server reproduction configuration");
+assert.match(preferencesXHTML, /reproductionSSHHost/, "server configuration must store an SSH alias rather than a password");
 const options = [];
 prefs.value = (id) => ({ "ra-deepseek-key": "secret", "ra-deepseek-url": "https://api.example.com/" })[id] || "";
 prefs.setStatus = () => {};

@@ -79,6 +79,14 @@
     </html:section>
 
     <html:section class="service optional">
+      <html:h3 class="service-title">服务器代码复现（Pi）</html:h3>
+      <html:p class="service-note">使用本机 SSH 配置中的主机别名和密钥认证；插件不会保存密码、私钥或模型密钥。请先在服务器上安装并登录 Pi，再填写其统一复现项目目录。聊天面板中可测试连接、创建仓库工作区并启动 Pi。</html:p>
+      <html:div class="field"><html:label for="ra-reproduction-ssh-host">SSH 配置别名</html:label><html:input id="ra-reproduction-ssh-host" type="text" placeholder="例如 gpu-lab" preference="extensions.researchAgent.reproductionSSHHost"/></html:div>
+      <html:div class="field"><html:label for="ra-reproduction-project-root">服务器项目根目录</html:label><html:input id="ra-reproduction-project-root" type="text" placeholder="例如 /data/reproductions" preference="extensions.researchAgent.reproductionProjectRoot"/></html:div>
+      <html:div class="field"><html:label for="ra-reproduction-pi-command">Pi 命令</html:label><html:input id="ra-reproduction-pi-command" type="text" placeholder="pi" preference="extensions.researchAgent.reproductionPiCommand"/></html:div>
+    </html:section>
+
+    <html:section class="service optional">
       <html:h3 class="service-title">研究技能（SkillMD）</html:h3>
       <html:p class="service-note">可搜索并安装公开、安全审阅的 SKILL.md 工作流。安装内容仅作为助手的回答方法与检查清单，不会执行 skill 携带的脚本、MCP、终端命令或依赖；请在启用前阅读预览和风险提示。</html:p>
       <html:div class="skill-search"><html:input id="ra-skill-query" type="search" placeholder="例如：literature review、research synthesis" aria-label="搜索研究技能"/><html:button id="ra-search-skills" type="button">搜索技能</html:button></html:div>
