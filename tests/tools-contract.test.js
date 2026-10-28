@@ -6,6 +6,10 @@ const agent = fs.readFileSync("src/agent.js", "utf8");
 const sidebar = fs.readFileSync("src/sidebar.js", "utf8");
 
 assert.ok(tools.includes("https://www.bing.com/search?format=rss"), "web search needs the Bing RSS fallback");
+assert.ok(tools.includes("https://api.deepseek.com/v1/tools/search"), "web search should prefer DeepSeek Search API");
+assert.ok(tools.includes("https://api.deepseek.com/v1/tools/fetch"), "agent must be able to fetch a selected web page through DeepSeek");
+assert.ok(tools.includes("need_content: false"), "search should keep initial agent context concise and fetch pages only when needed");
+assert.ok(tools.includes("name: \"fetch_web_page\""), "the model needs a controlled page-fetch tool");
 assert.ok(tools.includes('"X-Subscription-Token": braveKey'), "Brave requests must authenticate with the configured key");
 assert.ok(tools.includes("GitHub 源码搜索需要访问令牌"), "GitHub authentication failures must be actionable");
 assert.ok(tools.includes("async healthCheck()"), "all agent tools need a health check");
