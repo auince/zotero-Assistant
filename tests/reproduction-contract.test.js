@@ -36,9 +36,26 @@ vm.runInContext(fs.readFileSync("src/reproduction.js", "utf8"), context);
   let workspaceCommand = "";
   reproduction.runSSH = async (config, command) => { workspaceCommand = command; return {stdout: "project_venv: /data/reproductions/repro/.venv", stderr: "", exitCode: 0}; };
   await reproduction.prepareWorkspace(session);
-  execFileSync("/bin/sh", ["-n", "-c", workspaceCommand]);
+  // Feed a non-interactive Bash parser through stdin. If no-exec is ever
+  // ignored, the leading exit stops before ANY generated workspace command.
+  const checkShellSyntax = (source) => execFileSync("/bin/bash", ["--noprofile", "--norc", "-n"], { input: `exit 98\n${source}\n`, env: { PATH: "/usr/bin:/bin" } });
+  checkShellSyntax(workspaceCommand);
   assert.match(workspaceCommand, /python3 -m venv \.venv/, "each workspace must create a project-local venv");
   assert.equal(session.workspaceReady, true, "Pi should run only after workspace environment preparation");
+  assert.match(workspaceCommand, /timeout 120 git/, "Git network operations must have a deadline");
+  assert.match(workspaceCommand, /http.version=HTTP\/1.1/, "Git transport must use the server-tested compatibility mode without changing global config");
+  const savedArchive = reproduction.prepareGitHubArchive;
+  let fallbackCalls = 0;
+  reproduction.runSSH = async () => {throw new Error("Cloning into project: Connection timed out");};
+  reproduction.prepareGitHubArchive = async () => {fallbackCalls++; return {stdout: "official snapshot"};};
+  await reproduction.prepareWorkspace(session);
+  assert.equal(fallbackCalls, 1, "public GitHub clone transport failures should try the official archive, not an unknown mirror");
+  reproduction.prepareGitHubArchive = savedArchive;
+  reproduction.runSSH = async (config, command) => { workspaceCommand = command; return {stdout: "official_source_commit:test", stderr: "", exitCode: 0}; };
+  await reproduction.prepareGitHubArchive(session, reproduction.configuration(), "example", "repro");
+  checkShellSyntax(workspaceCommand);
+  assert.match(workspaceCommand, /codeload.github.com/, "archive fallback must download from the official upstream host");
+  assert.match(workspaceCommand, /upstreamCommit/, "snapshot mode must retain the upstream commit and not impersonate Git history");
   reproduction.runSSH = originalSSH;
   let sshOptions;
   let helperText;
@@ -60,9 +77,48 @@ vm.runInContext(fs.readFileSync("src/reproduction.js", "utf8"), context);
   assert.ok(!sshOptions.arguments.join(" ").includes("test-password-sentinel"), "password must not appear in process arguments");
   assert.ok(!helperText.includes("test-password-sentinel"), "askpass helper must not contain the actual password");
   assert.equal(helperMode, 0o700, "askpass helper must be private and executable");
+  const files = new Map();
+  const cleaned = [];
+  const env = new Map([["SSH_ASKPASS", "original-helper"]]);
+  const previousEnvironment = new Map(env);
+  let nativeArgs;
+  context.setTimeout = setTimeout;
+  context.Zotero.isMac = true;
+  context.Zotero.File = {
+    createDirectoryIfMissingAsync: async () => {},
+    putContentsAsync: async (path, value) => files.set(path, value),
+    getContentsAsync: async (path) => files.get(path) || "",
+    pathToFile: (path) => ({path})
+  };
+  context.IOUtils.remove = async (path) => {cleaned.push(path); files.delete(path);};
+  context.Services = {env: {exists: (key) => env.has(key), get: (key) => env.get(key) || "", set: (key, value) => value ? env.set(key, value) : env.delete(key)}};
+  const native = {
+    exitValue: 0, init: (file) => assert.equal(file.path, "/bin/sh"),
+    runwAsync: (args, length, observer) => {
+      nativeArgs = args;
+      assert.equal(length, args.length);
+      assert.equal(env.get("RESEARCH_AGENT_SSH_PASSWORD"), "test-password-sentinel");
+      setTimeout(() => { files.set(args[1], "connected\n"); observer.observe(null, "process-finished"); }, 1);
+    }
+  };
+  context.Components = {classes: {"@mozilla.org/process/util;1": {createInstance: () => native}}, interfaces: {nsIProcess: {}}};
+  const nativeResult = await reproduction.runSSH({host: "example.com", port: 2222, username: "researcher", authType: "password"}, "true", "native-test");
+  assert.equal(nativeResult.stdout, "connected\n", "macOS must use Zotero native process launching and capture output");
+  assert.equal(nativeArgs[3], "/usr/bin/ssh");
+  assert.deepEqual(env, previousEnvironment, "Zotero environment must be restored immediately after launch");
+  assert.ok([...files.values()].every((value) => !value.includes("test-password-sentinel")), "native launch must not write any credential file");
+  assert.equal(cleaned.length, 2, "temporary native output files must be cleaned after completion");
   const parsed = reproduction.parsePiEvents('{"type":"session_start","sessionFile":"/tmp/pi.jsonl"}\n{"type":"message_update","assistantMessageEvent":{"type":"text_delta","delta":"done"}}\n{"type":"agent_settled"}');
   assert.equal(parsed.answer, "done", "Pi JSON events must become a readable response");
   assert.equal(parsed.sessionRef, "/tmp/pi.jsonl", "Pi session references must persist for the next turn");
+  const failure = reproduction.parsePiEvents('{"type":"message_end","message":{"role":"assistant","content":[],"stopReason":"error","errorMessage":"Missing model credentials"}}\n{"type":"agent_settled","aborted":false}\n');
+  assert.match(failure.error, /Missing model credentials/, "Pi provider errors must not be reported as successful reproduction");
+  const final = reproduction.parsePiEvents('{"type":"message_end","message":{"role":"user","content":"not assistant output"}}\n{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"verified result"}],"stopReason":"stop"}}\n{"type":"agent_settled","aborted":false}\n');
+  assert.equal(final.answer, "verified result", "completed assistant text blocks are authoritative; user echoes are not answers");
+  assert.equal(final.settled, true);
+  const firstDelta = reproduction.parsePiEvents('{"type":"message_update","assistantMessageEvent":{"type":"text_delta","delta":"first "}}\n');
+  const secondDelta = reproduction.parsePiEvents('{"type":"message_update","assistantMessageEvent":{"type":"text_delta","delta":"second"}}\n', firstDelta);
+  assert.equal(secondDelta.answer, "first second", "Pi incremental parsing must process only newly completed JSONL records");
   assert.ok(saved.length >= 2, "reproduction state must be stored locally");
   console.log("Remote reproduction contract passed.");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

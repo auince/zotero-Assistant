@@ -1,4 +1,4 @@
-/* global Zotero, ChromeUtils, IOUtils, ResearchAgentStorage, ResearchAgentCredentials */
+/* global Zotero, ChromeUtils, Components, Services, IOUtils, ResearchAgentStorage, ResearchAgentCredentials */
 
 // Remote reproduction is deliberately a narrow SSH bridge. Credentials stay in
 // the SSH agent or Gecko login manager; ordinary state only persists a
@@ -84,6 +84,7 @@ var ResearchAgentReproduction = {
     if (session.repositoryURL !== url || session.serverPath !== nextPath) {
       session.workspaceReady = false;
       session.piSessionRef = "";
+      session.sourceMode = null;
     }
     session.repositoryURL = url;
     session.projectName = this.projectName(url);
@@ -125,6 +126,7 @@ var ResearchAgentReproduction = {
     const name = this.projectName(repo);
     const root = config.projectRoot.replace(/\/+$/, "");
     const destination = `${root}/${name}`;
+    const staging = `${root}/.${name}-clone-${this.sessionID()}`;
     session.status = "preparing";
     session.workspaceReady = false;
     session.projectName = name;
@@ -135,15 +137,18 @@ var ResearchAgentReproduction = {
     // and may contain user changes; only fetch its remote when it matches.
     const command = [
       "set -eu",
+      'run_git() { if command -v timeout >/dev/null 2>&1; then timeout 120 git -c http.version=HTTP/1.1 -c http.lowSpeedLimit=1 -c http.lowSpeedTime=30 "$@"; else git -c http.version=HTTP/1.1 -c http.lowSpeedLimit=1 -c http.lowSpeedTime=30 "$@"; fi; }',
       `mkdir -p ${this.shellQuote(root)}`,
       `if [ -e ${this.shellQuote(destination)} ]; then`,
       `  test ! -L ${this.shellQuote(destination)} || { echo '拒绝使用符号链接作为项目目录' >&2; exit 23; }`,
       `  test -d ${this.shellQuote(`${destination}/.git`)} || { echo '目标目录已存在但不是 Git 仓库' >&2; exit 20; }`,
       `  current=$(git -C ${this.shellQuote(destination)} remote get-url origin)`,
       `  test \"$current\" = ${this.shellQuote(repo)} || { echo '目标目录的 origin 与当前仓库不一致' >&2; exit 21; }`,
-      `  git -C ${this.shellQuote(destination)} fetch --prune origin`,
+      `  if [ -f ${this.shellQuote(`${destination}/.research-agent-source.json`)} ]; then printf '保留已下载的官方源码快照与本地修改\\n'; else run_git -C ${this.shellQuote(destination)} fetch --prune origin; fi`,
       "else",
-      `  git clone --depth 1 ${this.shellQuote(repo)} ${this.shellQuote(destination)}`,
+      `  run_git clone --depth 1 ${this.shellQuote(repo)} ${this.shellQuote(staging)}`,
+      `  test ! -e ${this.shellQuote(destination)} || { echo '目标目录已被其他操作创建；保留临时克隆目录，不覆盖' >&2; exit 25; }`,
+      `  mv ${this.shellQuote(staging)} ${this.shellQuote(destination)}`,
       "fi",
       `cd ${this.shellQuote(destination)}`,
       // Never activate Conda or install project packages with a global pip.
@@ -151,6 +156,7 @@ var ResearchAgentReproduction = {
       "if [ ! -e .venv ]; then python3 -m venv .venv; fi",
       "test -x .venv/bin/python || { echo '项目 .venv 不完整，请先人工检查；不会覆盖已有环境' >&2; exit 22; }",
       ".venv/bin/python -c 'import sys; assert sys.prefix != sys.base_prefix, \"not a virtual environment\"; print(\"project_venv:\", sys.prefix)'",
+      this.ensureProjectPipCommand(),
       `git -C ${this.shellQuote(destination)} rev-parse --short HEAD`
     ].join("\n");
     try {
@@ -163,9 +169,84 @@ var ResearchAgentReproduction = {
       await ResearchAgentStorage.saveReproductionSession(session);
       return result;
     } catch (error) {
+      const github = repo.match(/^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/?$/i);
+      if (github && /timed out|Connection timed out|Cloning into|SSL|TLS|HTTP\/2/i.test(error.message || "")) {
+        try { return await this.prepareGitHubArchive(session, config, github[1], github[2].replace(/\.git$/i, "")); }
+        catch (archiveError) { error = new Error(`${error.message}\n官方源码归档也未完成：${archiveError.message}`); }
+      }
       await this.failed(session, error);
       throw error;
     }
+  },
+
+  async prepareGitHubArchive(session, config, owner, repository) {
+    this.event(session, "workspace", "Git 传输超时，尝试 GitHub 官方源码归档；会保留原始提交号，不伪装为完整 Git 历史。");
+    const script = `import os,sys,json,tarfile,tempfile,subprocess,hashlib,shutil
+root,destination,owner,repo,url=sys.argv[1:]
+if os.path.lexists(destination): raise RuntimeError('目标目录已存在，拒绝覆盖；请先检查上次下载状态')
+with tempfile.TemporaryDirectory(prefix='.ra-download-',dir=root) as temporary:
+    metadata=os.path.join(temporary,'commit.json')
+    subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','30','-H','User-Agent: Zotero-Research-Agent','-o',metadata,'https://api.github.com/repos/'+owner+'/'+repo+'/commits/HEAD'],check=True)
+    with open(metadata) as source: commit=json.load(source)['sha']
+    if len(commit)!=40 or any(c not in '0123456789abcdef' for c in commit): raise RuntimeError('GitHub 返回无效提交号')
+    archive=os.path.join(temporary,'source.tar.gz')
+    subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','60','--max-filesize','52428800','-o',archive,'https://codeload.github.com/'+owner+'/'+repo+'/tar.gz/'+commit],check=True)
+    with tarfile.open(archive,'r:gz') as source:
+        members=source.getmembers()
+        if sum(member.size for member in members)>209715200: raise RuntimeError('源码解压体积超过限制')
+        for member in members:
+            parts=member.name.split('/')[1:]
+            if any(part in ('..','.git','.venv') for part in parts) or member.name.startswith('/') or not (member.isfile() or member.isdir()): raise RuntimeError('归档包含不安全路径或链接')
+        os.mkdir(destination)
+        for member in members:
+            relative='/'.join(member.name.split('/')[1:])
+            if not relative: continue
+            target=os.path.join(destination,relative)
+            if member.isdir(): os.makedirs(target,exist_ok=True)
+            else:
+                os.makedirs(os.path.dirname(target),exist_ok=True)
+                with source.extractfile(member) as data, open(target,'xb') as output: shutil.copyfileobj(data,output)
+                os.chmod(target,member.mode & 0o777)
+    with open(archive,'rb') as data: digest=hashlib.sha256(data.read()).hexdigest()
+    with open(os.path.join(destination,'.research-agent-source.json'),'x') as output: json.dump({'mode':'github-archive','repository':url,'upstreamCommit':commit,'archiveSHA256':digest},output,indent=2)
+    subprocess.run(['git','init',destination],check=True,stdout=subprocess.DEVNULL)
+    subprocess.run(['git','-C',destination,'remote','add','origin',url],check=True)
+    subprocess.run(['git','-C',destination,'add','-A'],check=True)
+    subprocess.run(['git','-C',destination,'-c','user.name=Research Agent','-c','user.email=local@research-agent.invalid','commit','-m','Official source snapshot '+commit],check=True,stdout=subprocess.DEVNULL)
+    subprocess.run(['python3','-m','venv',os.path.join(destination,'.venv')],check=True)
+    subprocess.run([os.path.join(destination,'.venv/bin/python'),'-c','import sys; assert sys.prefix != sys.base_prefix; print("project_venv:",sys.prefix)'],check=True)
+    print('official_source_commit:'+commit)
+`;
+    const command = `set -eu\npython3 -c ${this.shellQuote(script)} ${[config.projectRoot, session.serverPath, owner, repository, session.repositoryURL].map((value) => this.shellQuote(value)).join(" ")}\ncd ${this.shellQuote(session.serverPath)}\n${this.ensureProjectPipCommand()}`;
+    const result = await this.runSSH(config, command, session.id);
+    session.status = "ready";
+    session.workspaceReady = true;
+    session.serverIdentity = this.serverIdentity(config);
+    session.sourceMode = "github-archive";
+    session.error = "";
+    this.event(session, "workspace", `官方源码快照与 .venv 已就绪（非完整远端历史）：${this.compactOutput(result.stdout)}`);
+    await ResearchAgentStorage.saveReproductionSession(session);
+    return result;
+  },
+
+  ensureProjectPipCommand() {
+    const script = `import sys,os,subprocess,tempfile,importlib.util
+if sys.prefix==sys.base_prefix: raise RuntimeError('拒绝在全局 Python 中安装 pip')
+if not importlib.util.find_spec('pip'):
+    if importlib.util.find_spec('ensurepip'):
+        subprocess.run([sys.executable,'-I','-m','ensurepip','--upgrade'],check=True)
+    else:
+        version=sys.version_info[:2]
+        if version<(3,8): raise RuntimeError('项目 Python 版本过旧，请先选择受支持的解释器')
+        url='https://bootstrap.pypa.io/'+('pip/%d.%d/'%version if version<(3,10) else '')+'get-pip.py'
+        with tempfile.TemporaryDirectory(prefix='pip-bootstrap-',dir=sys.prefix) as temporary:
+            script=os.path.join(temporary,'get-pip.py')
+            subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','60','-o',script,url],check=True)
+            environment=dict(os.environ,PIP_REQUIRE_VIRTUALENV='true',PIP_CONFIG_FILE='/dev/null',PYTHONNOUSERSITE='1',TMPDIR=temporary)
+            subprocess.run([sys.executable,'-I',script,'--no-cache-dir','--disable-pip-version-check','--index-url','https://pypi.org/simple'],check=True,env=environment)
+subprocess.run([sys.executable,'-I','-m','pip','--version'],check=True)
+`;
+    return `.venv/bin/python -I -c ${this.shellQuote(script)}`;
   },
 
   async startPi(session, userPrompt, { onUpdate } = {}) {
@@ -189,19 +270,37 @@ var ResearchAgentReproduction = {
 
   async runPi(session, config, prompt, onUpdate) {
     try {
-      const sessionArgument = session.piSessionRef ? ` --session ${this.shellQuote(session.piSessionRef)}` : ` --name ${this.shellQuote(session.id)}`;
-      const command = `set -eu; cd ${this.shellQuote(session.serverPath)}; test -x .venv/bin/python || { echo '请先创建项目内 .venv' >&2; exit 22; }; export VIRTUAL_ENV=\"$PWD/.venv\"; export PATH=\"$VIRTUAL_ENV/bin:$PATH\"; export PIP_REQUIRE_VIRTUALENV=true; export PYTHONNOUSERSITE=1; unset PYTHONPATH PYTHONHOME CONDA_PREFIX CONDA_DEFAULT_ENV CONDA_PROMPT_MODIFIER; exec ${this.shellQuote(config.piCommand)} --mode json --tools +codemode${sessionArgument} ${this.shellQuote(prompt)}`;
-      let streamed = "";
+      // JSON headers identify the session but do not provide a session file.
+      // Select a stable, project-local session ID explicitly on every run.
+      const sessionDirectory = `${session.serverPath}/.research-agent/pi-sessions`;
+      session.piSessionRef = session.id;
+      await ResearchAgentStorage.saveReproductionSession(session);
+      const sessionArgument = ` --session-dir ${this.shellQuote(sessionDirectory)} --session-id ${this.shellQuote(session.id)}`;
+      const command = `set -eu; cd ${this.shellQuote(session.serverPath)}; test -x .venv/bin/python || { echo '请先创建项目内 .venv' >&2; exit 22; }; mkdir -p ${this.shellQuote(sessionDirectory)}; export VIRTUAL_ENV=\"$PWD/.venv\"; export PATH=\"$VIRTUAL_ENV/bin:$PATH\"; export PIP_REQUIRE_VIRTUALENV=true; export PYTHONNOUSERSITE=1; unset PYTHONPATH PYTHONHOME CONDA_PREFIX CONDA_DEFAULT_ENV CONDA_PROMPT_MODIFIER; exec ${this.shellQuote(config.piCommand)} --mode json --no-approve --no-extensions --no-skills --no-prompt-templates --tools read,bash,edit,write${sessionArgument} -- ${this.shellQuote(prompt)}`;
+      let pending = "";
+      let parsed = this.parsePiEvents("");
+      let received = false;
       const result = await this.runSSH(config, command, session.id, {
         onStdout: (chunk) => {
-          streamed += chunk;
-          session.liveAnswer = this.parsePiEvents(streamed).answer;
-          onUpdate?.(session);
+          received = true;
+          pending += chunk;
+          const boundary = pending.lastIndexOf("\n");
+          if (boundary < 0) return;
+          const previousAnswer = parsed.answer;
+          parsed = this.parsePiEvents(pending.slice(0, boundary + 1), parsed);
+          pending = pending.slice(boundary + 1);
+          if (parsed.answer !== previousAnswer) {
+            session.liveAnswer = parsed.answer;
+            onUpdate?.(session);
+          }
         }
       });
-      const parsed = this.parsePiEvents(result.stdout);
-      const answer = parsed.answer || this.compactOutput(result.stdout) || "Pi 未返回可显示的总结。";
-      if (parsed.sessionRef) session.piSessionRef = parsed.sessionRef;
+      if (!received) parsed = this.parsePiEvents(result.stdout);
+      else if (pending.trim()) parsed = this.parsePiEvents(pending, parsed);
+      if (session.status === "cancelled") return session;
+      if (parsed.error) throw new Error(`Pi 执行失败：${parsed.error}`);
+      if (!parsed.settled) throw new Error("Pi 事件流未正常结束；进度已保存，可在本会话中继续。");
+      const answer = parsed.answer || "Pi 本轮已结束，但没有返回正文。";
       session.messages.push({ role: "assistant", content: answer, at: new Date().toISOString(), events: parsed.events });
       for (const event of parsed.events.slice(-20)) this.event(session, "pi-event", event);
       session.status = "ready";
@@ -212,7 +311,7 @@ var ResearchAgentReproduction = {
       onUpdate?.(session);
       return session;
     } catch (error) {
-      await this.failed(session, error);
+      if (session.status !== "cancelled") await this.failed(session, error);
       onUpdate?.(session);
       throw error;
     }
@@ -239,7 +338,7 @@ var ResearchAgentReproduction = {
     await ResearchAgentStorage.saveReproductionSession(session);
   },
 
-  async runSSH(config, remoteCommand, taskID, { onStdout, onStderr } = {}) {
+  async runSSH(config, remoteCommand, taskID, { onStdout, onStderr, stdin } = {}) {
     const { Subprocess } = ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs");
     let ssh;
     try { ssh = await Subprocess.pathSearch("ssh"); } catch (_) { throw new Error("未在本机找到 ssh 命令。请安装或启用 OpenSSH 后重试。"); }
@@ -261,6 +360,13 @@ var ResearchAgentReproduction = {
     } else args.push("-o", "BatchMode=yes");
     if (config.username) args.push("-l", config.username);
     args.push("--", config.host, remoteCommand);
+    // macOS can kill system ssh when launched via Gecko's Subprocess worker
+    // (-9), even for `ssh -V`. nsIProcess is the same native launch mechanism
+    // used successfully by Zotero.Utilities.Internal.exec on the affected host.
+    if (Zotero.isMac) {
+      if (stdin !== undefined) Object.assign(environment, { RESEARCH_AGENT_SSH_INPUT_PRESENT: "1", RESEARCH_AGENT_SSH_INPUT: String(stdin) });
+      return this.runNativeSSH(ssh, args, environment, taskID, { onStdout, onStderr });
+    }
     const process = await Subprocess.call({
       command: ssh,
       arguments: args,
@@ -268,7 +374,7 @@ var ResearchAgentReproduction = {
       environmentAppend: true,
       stderr: "pipe"
     });
-    if (process.stdin) await process.stdin.close();
+    if (process.stdin) { if (stdin !== undefined) await process.stdin.write(String(stdin)); await process.stdin.close(); }
     this.activeProcesses.set(taskID, process);
     try {
       const [status, stdout, stderr] = await Promise.all([process.wait(), this.readPipe(process.stdout, onStdout), this.readPipe(process.stderr, onStderr)]);
@@ -276,6 +382,72 @@ var ResearchAgentReproduction = {
       return { stdout, stderr, exitCode: status.exitCode };
     } finally {
       this.activeProcesses.delete(taskID);
+    }
+  },
+
+  async runNativeSSH(ssh, args, environment, taskID, { onStdout, onStderr } = {}) {
+    await ResearchAgentStorage.initialize();
+    const directory = ResearchAgentStorage.join(ResearchAgentStorage.root, "ssh-runs");
+    await Zotero.File.createDirectoryIfMissingAsync(directory);
+    await IOUtils.setPermissions(directory, 0o700);
+    const runner = ResearchAgentStorage.join(directory, "runner.sh");
+    // No credentials or command text in files. Native pipes are emulated by
+    // private output files; the fixed wrapper forwards argv without evaluation.
+    await Zotero.File.putContentsAsync(runner, '#!/bin/sh\numask 077\noutput=$1\nerrors=$2\nshift 2\nif [ "${RESEARCH_AGENT_SSH_INPUT_PRESENT:-}" = 1 ]; then\n  printf \'%s\' "$RESEARCH_AGENT_SSH_INPUT" | "$@" >"$output" 2>"$errors"\nelse\n  exec "$@" >"$output" 2>"$errors" < /dev/null\nfi\n');
+    await IOUtils.setPermissions(runner, 0o700);
+    const runID = this.sessionID();
+    const output = ResearchAgentStorage.join(directory, `${runID}.out`);
+    const errors = ResearchAgentStorage.join(directory, `${runID}.err`);
+    for (const path of [output, errors]) {
+      await Zotero.File.putContentsAsync(path, "");
+      await IOUtils.setPermissions(path, 0o600);
+    }
+    const process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
+    process.init(Zotero.File.pathToFile("/bin/sh"));
+    const arguments_ = [runner, output, errors, ssh, ...args];
+    let done = false;
+    let result;
+    let stdout = "";
+    let stderr = "";
+    const finished = new Promise((resolve) => {
+      result = resolve;
+    });
+    const previous = Object.entries(environment).map(([key]) => ({ key, exists: Services.env.exists(key), value: Services.env.get(key) }));
+    try {
+      // A synchronous critical section: the child inherits a per-run password
+      // environment, then Zotero's original environment is restored immediately.
+      // Never await or dispatch another plugin callback while it is installed.
+      try {
+        for (const [key, value] of Object.entries(environment)) Services.env.set(key, value);
+        process.runwAsync(arguments_, arguments_.length, { observe: (_, topic) => {
+          done = true;
+          result({ exitCode: topic === "process-finished" ? process.exitValue : -1, topic });
+        } });
+      } finally {
+        for (const entry of previous) Services.env.set(entry.key, entry.exists ? entry.value : "");
+      }
+      this.activeProcesses.set(taskID, process);
+      const pump = async () => {
+        const nextOutput = await Zotero.File.getContentsAsync(output);
+        const nextErrors = await Zotero.File.getContentsAsync(errors);
+        if (nextOutput.length > stdout.length) onStdout?.(nextOutput.slice(stdout.length));
+        if (nextErrors.length > stderr.length) onStderr?.(nextErrors.slice(stderr.length));
+        stdout = nextOutput; stderr = nextErrors;
+      };
+      while (!done) {
+        await pump();
+        await new Promise((resolve) => setTimeout(resolve, 180));
+      }
+      const status = await finished;
+      await pump();
+      if (status.exitCode !== 0) throw new Error(this.compactOutput(stderr) || `SSH 原生任务退出（${status.exitCode}）。`);
+      return { stdout, stderr, exitCode: status.exitCode };
+    } finally {
+      if (!done && process.isRunning) { try { process.kill(); } catch (error) { Zotero.logError(error); } }
+      this.activeProcesses.delete(taskID);
+      for (const path of [output, errors]) {
+        try { await IOUtils.remove(path, { ignoreAbsent: true }); } catch (error) { Zotero.logError(error); }
+      }
     }
   },
 
@@ -295,26 +467,39 @@ var ResearchAgentReproduction = {
     return output;
   },
 
-  parsePiEvents(output) {
-    const events = [];
-    let answer = "";
-    let sessionRef = "";
+  parsePiEvents(output, previous = null) {
+    const events = previous?.events || [];
+    let answer = previous?.answer || "";
+    let sessionRef = previous?.sessionRef || "";
+    let current = previous?.current || "";
+    let error = previous?.error || "";
+    let settled = Boolean(previous?.settled);
     for (const line of String(output || "").split(/\r?\n/)) {
       if (!line.trim()) continue;
       try {
         const event = JSON.parse(line);
+        if (event.type === "session" && event.id) sessionRef = event.id;
+        if (event.type === "message_start" && event.message?.role === "assistant") current = "";
         const delta = event?.assistantMessageEvent?.type === "text_delta" ? event.assistantMessageEvent.delta : "";
-        if (delta) answer += delta;
+        if (delta) { current += delta; answer = current; }
         const content = event?.message?.content;
-        if (!answer && typeof content === "string") answer = content;
+        if (event.type === "message_end" && event.message?.role === "assistant") {
+          const finalText = Array.isArray(content) ? content.filter((block) => block.type === "text").map((block) => block.text || "").join("\n") : typeof content === "string" ? content : "";
+          if (finalText) { current = finalText; answer = finalText; }
+          if (["error", "aborted"].includes(event.message.stopReason)) error = event.message.errorMessage || "模型请求失败或已中止。";
+          else error = "";
+        }
+        if (event.assistantMessageEvent?.type === "error") error = event.assistantMessageEvent.error?.errorMessage || event.assistantMessageEvent.error?.message || "模型响应失败。";
+        if (event.type === "agent_settled") { settled = true; if (event.aborted) error = error || "Pi 任务已中止。"; }
         const candidate = event?.sessionFile || event?.sessionPath || event?.session?.file || event?.session?.sessionFile || "";
         if (candidate) sessionRef = candidate;
-        if (["tool_execution_start", "tool_execution_end", "agent_settled", "agent_end"].includes(event?.type)) events.push(this.compactOutput(event.type === "agent_settled" ? "代理任务已稳定结束。" : event.type));
+        if (["tool_execution_start", "tool_execution_end", "agent_settled", "agent_end"].includes(event?.type)) events.push(this.compactOutput(event.type === "agent_settled" ? "代理任务已稳定结束。" : `${event.type}${event.toolName ? `：${event.toolName}` : ""}`));
       } catch (_) {
         events.push(this.compactOutput(line));
       }
     }
-    return { answer: this.compactOutput(answer, 18000), sessionRef, events };
+    if (events.length > 120) events.splice(0, events.length - 120);
+    return { answer: this.compactOutput(answer, 18000), current, sessionRef, events, error: this.compactOutput(error), settled };
   },
 
   piPrompt(session, question) {
