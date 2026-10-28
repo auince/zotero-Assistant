@@ -330,11 +330,11 @@ var ResearchAgentSidebar = {
       repositoryInput.disabled = !configured;
       testServer.disabled = !configured || session?.status === "connecting";
       prepareWorkspace.disabled = !configured || !session?.repositoryURL || ["preparing", "running"].includes(session?.status);
-      runReproduction.disabled = !configured || !session?.serverPath || session?.status === "running";
+      runReproduction.disabled = !configured || !session?.workspaceReady || ["running", "preparing", "connecting"].includes(session?.status);
       stopReproduction.hidden = session?.status !== "running";
       reproductionPath.textContent = session?.serverPath ? `服务器工作区：${session.serverPath}` : "工作区：填写仓库地址后将显示在统一项目根目录下的位置。";
       reproductionNote.textContent = configured
-        ? `SSH：${configuration.host} · 项目根目录：${configuration.projectRoot}。凭据由本机 SSH 配置与服务器 Pi 管理。`
+        ? `${configuration.title || "复现服务器"}：${configuration.username ? `${configuration.username}@` : ""}${configuration.host}:${configuration.port}。项目内 .venv；不使用全局 Conda。`
         : "请先在 Zotero 设置 → 研究助手 → 服务器代码复现（Pi）填写 SSH 配置别名和服务器项目根目录。";
       reproductionLog.replaceChildren();
       const history = [...(session?.messages || []).slice(-4), ...(session?.events || []).slice(-3).map((event) => ({ role: "event", content: event.text }))];

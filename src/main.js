@@ -2,7 +2,7 @@
 
 Services.scriptloader.loadSubScript(`${ResearchAgentRootURI}vendor/katex/katex.min.js`);
 
-for (const module of ["storage", "memory", "jobs", "semantic", "indexer", "tools", "wiki", "research", "reproduction", "agent", "daily-notes", "markdown", "sidebar"]) {
+for (const module of ["storage", "credentials", "memory", "jobs", "semantic", "indexer", "tools", "wiki", "research", "reproduction", "agent", "daily-notes", "markdown", "sidebar"]) {
   Services.scriptloader.loadSubScript(`${ResearchAgentRootURI}src/${module}.js`);
 }
 
@@ -20,7 +20,7 @@ var ResearchAgent = {
       label: "研究助手",
       image: this.rootURI + "icons/research-agent.png",
       src: this.rootURI + "prefs.xhtml",
-      scripts: [this.rootURI + "prefs-ui.js"]
+      scripts: [this.rootURI + "src/credentials.js", this.rootURI + "prefs-ui.js"]
     });
     await ResearchAgentStorage.initialize();
     ResearchAgentSidebar.register(this.rootURI);

@@ -1,4 +1,4 @@
-/* global Zotero */
+/* global Zotero, ResearchAgentCredentials */
 
 var ResearchAgentPreferences = {
   initialized: false,
@@ -56,6 +56,13 @@ var ResearchAgentPreferences = {
     this.bindLivePreference("ra-deep-research-searches", "extensions.researchAgent.deepResearchMaxSearchRequests", true, 0, 7);
     this.bindLivePreference("ra-deep-research-fetches", "extensions.researchAgent.deepResearchMaxFetches", true, 0, 3);
     this.bindLivePreference("ra-search-cache-hours", "extensions.researchAgent.searchCacheFreshnessHours", true, 1, 4);
+    for (const [id, name] of [["server-title", "ServerTitle"], ["ssh-host", "SSHHost"], ["ssh-user", "SSHUser"], ["project-root", "ProjectRoot"], ["pi-command", "PiCommand"]]) {
+      this.bindLivePreference(`ra-reproduction-${id}`, `extensions.researchAgent.reproduction${name}`);
+    }
+    this.bindLivePreference("ra-reproduction-ssh-port", "extensions.researchAgent.reproductionSSHPort", true, 1, 22);
+    doc.getElementById("ra-reproduction-ssh-auth").addEventListener("change", (event) => Zotero.Prefs.set("extensions.researchAgent.reproductionSSHAuthType", event.target.value, true));
+    doc.getElementById("ra-save-server-password").addEventListener("click", () => this.safely("ra-server-password-status", () => this.saveServerPassword()));
+    doc.getElementById("ra-forget-server-password").addEventListener("click", () => this.safely("ra-server-password-status", () => this.forgetServerPassword()));
     this.bindAutomaticFetch("ra-deepseek-key", "ra-deepseek-url", () => this.fetchChatModels());
     this.bindAutomaticFetch("ra-siliconflow-key", "ra-siliconflow-url", () => this.fetchKnowledgeModels());
     // Show the persisted (and possibly startup-migrated) model in the selector
@@ -85,6 +92,28 @@ var ResearchAgentPreferences = {
       select.value = detected;
       Zotero.Prefs.set("extensions.researchAgent.chatProvider", detected, true);
     }
+  },
+
+  serverIdentity() {
+    const host = this.value("ra-reproduction-ssh-host");
+    const username = this.value("ra-reproduction-ssh-user");
+    const port = Number(this.value("ra-reproduction-ssh-port")) || 22;
+    if (!/^[A-Za-z0-9_.@-]{1,180}$/.test(host) || host.startsWith("-") || !Number.isInteger(port) || port < 1 || port > 65535) throw new Error("请先填写有效的服务器地址和端口。");
+    return { host, username, port };
+  },
+
+  async saveServerPassword() {
+    const input = document.getElementById("ra-reproduction-ssh-password");
+    const password = input.value;
+    try { await ResearchAgentCredentials.savePassword(this.serverIdentity(), password); }
+    finally { input.value = ""; }
+    this.setStatus("ra-server-password-status", "服务器密码已保存至 Zotero 登录凭据库；不会显示在配置文件或发送给模型。");
+  },
+
+  async forgetServerPassword() {
+    await ResearchAgentCredentials.forgetPassword(this.serverIdentity());
+    document.getElementById("ra-reproduction-ssh-password").value = "";
+    this.setStatus("ra-server-password-status", "已清除当前服务器的密码。");
   },
 
   applyChatProvider(providerID) {

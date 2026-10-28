@@ -80,8 +80,15 @@
 
     <html:section class="service optional">
       <html:h3 class="service-title">服务器代码复现（Pi）</html:h3>
-      <html:p class="service-note">使用本机 SSH 配置中的主机别名和密钥认证；插件不会保存密码、私钥或模型密钥。请先在服务器上安装并登录 Pi，再填写其统一复现项目目录。聊天面板中可测试连接、创建仓库工作区并启动 Pi。</html:p>
-      <html:div class="field"><html:label for="ra-reproduction-ssh-host">SSH 配置别名</html:label><html:input id="ra-reproduction-ssh-host" type="text" placeholder="例如 gpu-lab" preference="extensions.researchAgent.reproductionSSHHost"/></html:div>
+      <html:p class="service-note">支持主机地址或 SSH 别名。密码单独存入 Zotero 登录凭据库，不写入普通配置或会话，也不提供给模型。首次连接前请在终端核对服务器指纹。Pi 应预先安装并完成认证；每个复现项目在自身目录内使用 .venv，禁止安装到全局 Conda 环境。</html:p>
+      <html:div class="field"><html:label for="ra-reproduction-server-title">服务器名称</html:label><html:input id="ra-reproduction-server-title" type="text" preference="extensions.researchAgent.reproductionServerTitle"/></html:div>
+      <html:div class="field"><html:label for="ra-reproduction-ssh-host">主机地址 / SSH 别名</html:label><html:input id="ra-reproduction-ssh-host" type="text" placeholder="例如 gpu-lab" preference="extensions.researchAgent.reproductionSSHHost"/></html:div>
+      <html:div class="field"><html:label for="ra-reproduction-ssh-port">SSH 端口</html:label><html:input id="ra-reproduction-ssh-port" type="number" min="1" max="65535" preference="extensions.researchAgent.reproductionSSHPort"/></html:div>
+      <html:div class="field"><html:label for="ra-reproduction-ssh-user">SSH 用户名</html:label><html:input id="ra-reproduction-ssh-user" type="text" preference="extensions.researchAgent.reproductionSSHUser"/></html:div>
+      <html:div class="field"><html:label for="ra-reproduction-ssh-auth">认证方式</html:label><html:select id="ra-reproduction-ssh-auth" preference="extensions.researchAgent.reproductionSSHAuthType"><html:option value="key">SSH 密钥 / 系统代理</html:option><html:option value="password">密码（macOS / Linux）</html:option></html:select></html:div>
+      <html:div class="field"><html:label for="ra-reproduction-ssh-password">服务器密码</html:label><html:input id="ra-reproduction-ssh-password" type="password" autocomplete="off" placeholder="不回显已保存的密码"/></html:div>
+      <html:div class="actions"><html:button id="ra-save-server-password" type="button">保存服务器密码</html:button><html:button id="ra-forget-server-password" class="secondary" type="button">清除已保存密码</html:button></html:div>
+      <html:div id="ra-server-password-status" class="status" role="status"/>
       <html:div class="field"><html:label for="ra-reproduction-project-root">服务器项目根目录</html:label><html:input id="ra-reproduction-project-root" type="text" placeholder="例如 /data/reproductions" preference="extensions.researchAgent.reproductionProjectRoot"/></html:div>
       <html:div class="field"><html:label for="ra-reproduction-pi-command">Pi 命令</html:label><html:input id="ra-reproduction-pi-command" type="text" placeholder="pi" preference="extensions.researchAgent.reproductionPiCommand"/></html:div>
     </html:section>
