@@ -52,6 +52,10 @@ var ResearchAgentPreferences = {
     this.bindLivePreference("ra-siliconflow-key", "extensions.researchAgent.siliconFlowAPIKey");
     this.bindLivePreference("ra-siliconflow-url", "extensions.researchAgent.siliconFlowBaseURL");
     this.bindLivePreference("ra-context-limit", "extensions.researchAgent.contextWindowTokens", true);
+    this.bindLivePreference("ra-deep-research-tools", "extensions.researchAgent.deepResearchMaxToolCalls", true, 4, 12);
+    this.bindLivePreference("ra-deep-research-searches", "extensions.researchAgent.deepResearchMaxSearchRequests", true, 0, 7);
+    this.bindLivePreference("ra-deep-research-fetches", "extensions.researchAgent.deepResearchMaxFetches", true, 0, 3);
+    this.bindLivePreference("ra-search-cache-hours", "extensions.researchAgent.searchCacheFreshnessHours", true, 1, 4);
     this.bindAutomaticFetch("ra-deepseek-key", "ra-deepseek-url", () => this.fetchChatModels());
     this.bindAutomaticFetch("ra-siliconflow-key", "ra-siliconflow-url", () => this.fetchKnowledgeModels());
     // Show the persisted (and possibly startup-migrated) model in the selector
@@ -107,9 +111,9 @@ var ResearchAgentPreferences = {
     document.getElementById(id).addEventListener("change", (event) => Zotero.Prefs.set(preference, event.target.value, true));
   },
 
-  bindLivePreference(id, preference, numeric = false) {
+  bindLivePreference(id, preference, numeric = false, minimum = 16000, fallback = 360000) {
     document.getElementById(id).addEventListener("input", (event) => {
-      const value = numeric ? Math.max(16000, Number(event.target.value) || 360000) : event.target.value;
+      const value = numeric ? Math.max(minimum, Number(event.target.value) || fallback) : event.target.value;
       Zotero.Prefs.set(preference, value, true);
     });
   },

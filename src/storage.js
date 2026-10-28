@@ -10,6 +10,8 @@ var ResearchAgentStorage = {
   settingsPath: null,
   notesIndexPath: null,
   skillsIndexPath: null,
+  researchTasksPath: null,
+  searchCachePath: null,
 
   async initialize() {
     if (this.root) return;
@@ -22,6 +24,8 @@ var ResearchAgentStorage = {
     this.settingsPath = this.join(this.root, "state.json");
     this.notesIndexPath = this.join(this.root, "notes-index.json");
     this.skillsIndexPath = this.join(this.root, "skills-index.json");
+    this.researchTasksPath = this.join(this.root, "research-tasks.json");
+    this.searchCachePath = this.join(this.root, "search-cache.json");
     await Zotero.File.createDirectoryIfMissingAsync(this.root);
     await Zotero.File.createDirectoryIfMissingAsync(this.conversationsDirectoryPath);
   },
@@ -71,6 +75,56 @@ var ResearchAgentStorage = {
     wiki.version ||= 1;
     wiki.updatedAt = new Date().toISOString();
     await this.writeJSON(this.wikiPath, wiki);
+  },
+
+  async getResearchTasks() {
+    const index = await this.readJSON(this.researchTasksPath, { version: 1, tasks: {} });
+    index.version ||= 1;
+    index.tasks ||= {};
+    return index;
+  },
+
+  async saveResearchTask(task) {
+    const index = await this.getResearchTasks();
+    task.updatedAt = new Date().toISOString();
+    index.tasks[task.id] = task;
+    await this.writeJSON(this.researchTasksPath, index);
+    return task;
+  },
+
+  async getResearchTask(id) {
+    if (!id) return null;
+    return (await this.getResearchTasks()).tasks[id] || null;
+  },
+
+  async listResearchTasks(conversationID) {
+    const tasks = Object.values((await this.getResearchTasks()).tasks || {});
+    return tasks.filter((task) => !conversationID || task.conversationID === conversationID)
+      .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+  },
+
+  async getSearchCache() {
+    const cache = await this.readJSON(this.searchCachePath, { version: 1, entries: {} });
+    cache.version ||= 1;
+    cache.entries ||= {};
+    return cache;
+  },
+
+  async getSearchCacheEntry(key) {
+    return (await this.getSearchCache()).entries[key] || null;
+  },
+
+  async saveSearchCacheEntry(key, entry) {
+    const cache = await this.getSearchCache();
+    cache.entries[key] = entry;
+    // Keep cache maintenance bounded. The oldest entries are safe to discard:
+    // cache is only an acceleration layer, never the source of truth.
+    const entries = Object.entries(cache.entries);
+    if (entries.length > 240) {
+      entries.sort(([, a], [, b]) => String(a.storedAt || "").localeCompare(String(b.storedAt || "")));
+      for (const [stale] of entries.slice(0, entries.length - 240)) delete cache.entries[stale];
+    }
+    await this.writeJSON(this.searchCachePath, cache);
   },
 
   conversationPath(id) {

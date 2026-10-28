@@ -13,5 +13,8 @@ assert.ok(source.includes("overflow-y:scroll"), "note preview must own a usable 
 assert.ok(source.includes("research-agent-note-title"), "note title and metadata must render as distinct non-overlapping elements");
 assert.ok(source.includes("research-agent-wiki-graph"), "knowledge management must expose the visual research Wiki graph");
 assert.ok(source.includes("为已入库文献补建 Wiki"), "users must be able to build a graph for entries indexed before this version");
+assert.ok(source.includes("深度研究模式"), "chat must expose a deliberate deep-research mode");
+assert.ok(source.includes("继续任务"), "interrupted deep research must be resumable from the chat UI");
+assert.ok(source.includes("证据账本"), "deep-research answers must expose their evidence ledger");
 
 console.log("Sidebar shortcuts and layout contract passed.");

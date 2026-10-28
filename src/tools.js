@@ -68,15 +68,15 @@ var ResearchAgentTools = {
 
   async execute(name, args, scope = {}) {
     if (name === "calculate") return this.calculate(args?.expression);
-    if (name === "fetch_web_page") return this.fetchWebPage(args?.url);
+    if (name === "fetch_web_page") return this.fetchWebPage(args?.url, scope);
     const query = String(args?.query || "").trim();
     if (!query) throw new Error("检索关键词不能为空。" );
     switch (name) {
       case "search_knowledge_base": return ResearchAgentIndexer.search(query, args.limit || 8, scope.collectionIDs || [], { useSemantic: Boolean(scope.useSemantic) });
       case "search_research_wiki": return this.searchResearchWiki(query, args.limit || 6);
-      case "search_web": return this.searchWeb(query, args.limit || 5, scope.originalQuestion);
-      case "search_arxiv": return this.searchArxiv(query, args.limit || 5);
-      case "search_github_code": return this.searchGitHubCode(query, args.limit || 5);
+      case "search_web": return this.searchWeb(query, args.limit || 5, scope.originalQuestion, scope);
+      case "search_arxiv": return this.searchArxiv(query, args.limit || 5, scope);
+      case "search_github_code": return this.searchGitHubCode(query, args.limit || 5, scope);
       default: throw new Error(`Unknown agent tool: ${name}`);
     }
   },
@@ -140,6 +140,37 @@ var ResearchAgentTools = {
     }
   },
 
+  cacheKey(kind, input) {
+    return `${kind}:${String(input || "").toLowerCase().replace(/\s+/g, " ").trim().slice(0, 600)}`;
+  },
+
+  cacheMaxAgeMs() {
+    const stored = Zotero.Prefs.get("extensions.researchAgent.searchCacheFreshnessHours", true);
+    const configured = stored === "" || stored === null || stored === undefined ? NaN : Number(stored);
+    const hours = Number.isFinite(configured) ? Math.min(168, Math.max(1, configured)) : 4;
+    return hours * 60 * 60 * 1000;
+  },
+
+  async cached(kind, input, maxAgeMs, loader, scope = {}) {
+    const key = this.cacheKey(kind, input);
+    try {
+      const entry = await ResearchAgentStorage.getSearchCacheEntry?.(key);
+      if (entry?.expiresAt && new Date(entry.expiresAt).getTime() > Date.now()) {
+        scope.onCache?.({ kind, hit: true, fetchedAt: entry.fetchedAt, expiresAt: entry.expiresAt });
+        return entry.value;
+      }
+    } catch (error) { Zotero.logError(error); }
+    const value = await loader();
+    const now = new Date();
+    try {
+      await ResearchAgentStorage.saveSearchCacheEntry?.(key, {
+        kind, value, storedAt: now.toISOString(), fetchedAt: now.toISOString(), expiresAt: new Date(now.getTime() + maxAgeMs).toISOString()
+      });
+      scope.onCache?.({ kind, hit: false, fetchedAt: now.toISOString(), expiresAt: new Date(now.getTime() + maxAgeMs).toISOString() });
+    } catch (error) { Zotero.logError(error); }
+    return value;
+  },
+
   deepSeekSearchCredentials() {
     const configured = String(Zotero.Prefs.get("extensions.researchAgent.deepseekBaseURL", true) || "https://api.deepseek.com").replace(/\/+$/, "").replace(/\/v1$/, "");
     const apiKey = Zotero.Prefs.get("extensions.researchAgent.deepseekAPIKey", true);
@@ -170,23 +201,29 @@ var ResearchAgentTools = {
     })).filter((item) => item.title && /^https?:\/\//.test(item.url || ""));
   },
 
-  async fetchWebPage(url) {
+  async fetchWebPage(url, scope = {}) {
     let target;
     try { target = new URL(String(url || "")); } catch (_) { throw new Error("请提供有效的 HTTP 或 HTTPS 网页地址。"); }
     if (!/^https?:$/.test(target.protocol) || target.username || target.password) throw new Error("只能抓取不含用户名和密码的 HTTP/HTTPS 网页地址。");
-    const credentials = this.deepSeekSearchCredentials();
-    if (!credentials) throw new Error("网页抓取使用 DeepSeek Search/Fetch API。请在 Zotero 设置中选择官方 DeepSeek 地址 https://api.deepseek.com，并填写可用的 DeepSeek API Key。");
-    const raw = await this.request("POST", "https://api.deepseek.com/v1/tools/fetch", {
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${credentials.apiKey}` },
-      body: JSON.stringify({ url: target.href })
-    });
-    const data = JSON.parse(raw);
-    const content = String(data.content || "");
-    if (!content) throw new Error("DeepSeek Fetch 没有返回可用的网页正文。");
-    return { title: data.title || target.hostname, url: target.href, content: content.slice(0, 18000), source: "DeepSeek Fetch" };
+    return this.cached("web-fetch", target.href, this.cacheMaxAgeMs(), async () => {
+      const credentials = this.deepSeekSearchCredentials();
+      if (!credentials) throw new Error("网页抓取使用 DeepSeek Search/Fetch API。请在 Zotero 设置中选择官方 DeepSeek 地址 https://api.deepseek.com，并填写可用的 DeepSeek API Key。");
+      const raw = await this.request("POST", "https://api.deepseek.com/v1/tools/fetch", {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${credentials.apiKey}` },
+        body: JSON.stringify({ url: target.href })
+      });
+      const data = JSON.parse(raw);
+      const content = String(data.content || "");
+      if (!content) throw new Error("DeepSeek Fetch 没有返回可用的网页正文。");
+      return { title: data.title || target.hostname, url: target.href, content: content.slice(0, 18000), source: "DeepSeek Fetch" };
+    }, scope);
   },
 
-  async searchWeb(query, limit, originalQuestion) {
+  async searchWeb(query, limit, originalQuestion, scope = {}) {
+    return this.cached("web-search", `${query}\n${originalQuestion || ""}`, this.cacheMaxAgeMs(), () => this.searchWebLive(query, limit, originalQuestion), scope);
+  },
+
+  async searchWebLive(query, limit, originalQuestion) {
     // DeepSeek's Search API is the preferred path. Its server-side ranking and
     // concise summaries fit an agent context better than scraping a result page.
     try {
@@ -219,7 +256,11 @@ var ResearchAgentTools = {
     return results;
   },
 
-  async searchArxiv(query, limit) {
+  async searchArxiv(query, limit, scope = {}) {
+    return this.cached("arxiv", query, this.cacheMaxAgeMs(), () => this.searchArxivLive(query, limit), scope);
+  },
+
+  async searchArxivLive(query, limit) {
     const searchQuery = `all:${query.replace(/\s+/g, "+AND+all:")}`;
     const xml = await this.request("GET", `https://export.arxiv.org/api/query?search_query=${encodeURIComponent(searchQuery)}&start=0&max_results=${limit}&sortBy=relevance&sortOrder=descending`, {
       headers: { Accept: "application/atom+xml, application/xml;q=0.9", "User-Agent": "ResearchAgentForZotero/0.3 (Zotero plugin)" }
@@ -237,7 +278,11 @@ var ResearchAgentTools = {
     return results;
   },
 
-  async searchGitHubCode(query, limit) {
+  async searchGitHubCode(query, limit, scope = {}) {
+    return this.cached("github-code", query, this.cacheMaxAgeMs(), () => this.searchGitHubCodeLive(query, limit), scope);
+  },
+
+  async searchGitHubCodeLive(query, limit) {
     const token = Zotero.Prefs.get("extensions.researchAgent.githubToken", true);
     if (!token) throw new Error("GitHub 源码搜索需要访问令牌。请在 Zotero 设置 → Research Agent → 联网检索服务中填写 GitHub 访问令牌。");
     const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };

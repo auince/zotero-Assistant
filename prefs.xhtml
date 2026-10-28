@@ -70,6 +70,15 @@
     </html:section>
 
     <html:section class="service optional">
+      <html:h3 class="service-title">深度研究、缓存与预算</html:h3>
+      <html:p class="service-note">深度研究会保存检索计划、证据账本与已完成步骤。以下限制只约束一次研究任务；达到上限时可在原会话中继续。缓存命中不会重复调用外部服务，超过新鲜度后会重新检索。</html:p>
+      <html:div class="field"><html:label for="ra-deep-research-tools">每任务最多工具调用</html:label><html:input id="ra-deep-research-tools" type="number" min="4" max="60" step="1" preference="extensions.researchAgent.deepResearchMaxToolCalls"/></html:div>
+      <html:div class="field"><html:label for="ra-deep-research-searches">其中最多外部检索</html:label><html:input id="ra-deep-research-searches" type="number" min="0" max="60" step="1" preference="extensions.researchAgent.deepResearchMaxSearchRequests"/></html:div>
+      <html:div class="field"><html:label for="ra-deep-research-fetches">其中最多网页抓取</html:label><html:input id="ra-deep-research-fetches" type="number" min="0" max="30" step="1" preference="extensions.researchAgent.deepResearchMaxFetches"/></html:div>
+      <html:div class="field"><html:label for="ra-search-cache-hours">检索缓存新鲜度（小时）</html:label><html:input id="ra-search-cache-hours" type="number" min="1" max="168" step="1" preference="extensions.researchAgent.searchCacheFreshnessHours"/></html:div>
+    </html:section>
+
+    <html:section class="service optional">
       <html:h3 class="service-title">研究技能（SkillMD）</html:h3>
       <html:p class="service-note">可搜索并安装公开、安全审阅的 SKILL.md 工作流。安装内容仅作为助手的回答方法与检查清单，不会执行 skill 携带的脚本、MCP、终端命令或依赖；请在启用前阅读预览和风险提示。</html:p>
       <html:div class="skill-search"><html:input id="ra-skill-query" type="search" placeholder="例如：literature review、research synthesis" aria-label="搜索研究技能"/><html:button id="ra-search-skills" type="button">搜索技能</html:button></html:div>

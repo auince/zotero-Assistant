@@ -1,4 +1,4 @@
-/* global Zotero, ResearchAgentMemory, ResearchAgentTools */
+/* global Zotero, ResearchAgentMemory, ResearchAgentTools, ResearchAgentResearch */
 
 var ResearchAgentAgent = {
   // The system prompt defines a cooperative research agent rather than a
@@ -49,7 +49,7 @@ var ResearchAgentAgent = {
 
 输出可按需要包含“关键直觉”“试着判断”“提示”“完整讲解”这些短标题，但不要机械套用。`,
 
-  async answer(question, { onEvent, conversation, rag, learning, wikiContext } = {}) {
+  async answer(question, { onEvent, conversation, rag, learning, wikiContext, deepResearch = false, researchTask = null } = {}) {
     const apiKey = Zotero.Prefs.get("extensions.researchAgent.deepseekAPIKey", true);
     if (!apiKey) throw new Error("请先在 Zotero 设置 → Research Agent 中填写对话模型 API 密钥。");
     const tools = ResearchAgentTools.definitionsFor();
@@ -60,6 +60,12 @@ var ResearchAgentAgent = {
     if (conversation) {
       const memoryMessages = await ResearchAgentMemory.prepare(conversation, question, apiKey, onEvent);
       messages = [{ role: "system", content: this.systemPrompt }, ...memoryMessages];
+    }
+    let activeResearchTask = researchTask;
+    if (deepResearch) {
+      activeResearchTask ||= await ResearchAgentResearch.create({ question, conversationID: conversation?.id, paper: conversation?.paper || null });
+      activeResearchTask = await ResearchAgentResearch.prepare(activeResearchTask, { apiKey, onEvent, scope: { collectionIDs: rag?.collectionIDs || [], useSemantic: Boolean(rag?.useSemantic), originalQuestion: question } });
+      messages.splice(1, 0, { role: "system", content: ResearchAgentResearch.prompt(activeResearchTask) });
     }
     const installedSkills = await ResearchAgentStorage.getEnabledSkills?.() || [];
     if (installedSkills.length) {
@@ -76,11 +82,13 @@ var ResearchAgentAgent = {
       : "当前没有提供左侧论文内容；请根据用户问题正常回答。";
     messages.splice(1, 0, { role: "system", content: `本地知识库、研究 Wiki、网页、arXiv、GitHub 与计算工具均按需可用。${paperContext}\n\n由你判断是否检索：涉及用户文献、相近研究或需要段落证据时调用 search_knowledge_base；需要关系与方法类比时调用 search_research_wiki；需要外部时效性事实时调用联网工具。不要把工具调用变成固定步骤，也不要把未检索的本地文献写成证据。` });
     const citations = [];
-    for (let step = 0; step < 8; step++) {
+    const maxSteps = activeResearchTask?.budget?.maxToolCalls || 8;
+    for (let step = 0; step < maxSteps; step++) {
       const message = await this.completeStream(messages, apiKey, onEvent, tools);
       if (!message.tool_calls?.length) {
         const answer = message.content || "模型没有返回正文。";
-        const result = { answer, citations: this.uniqueCitations(citations) };
+        if (activeResearchTask && activeResearchTask.status !== "paused") await ResearchAgentResearch.complete(activeResearchTask, answer);
+        const result = { answer, citations: this.uniqueCitations(citations), evidence: activeResearchTask?.evidence || [], researchTask: activeResearchTask || null };
         return result;
       }
       messages.push({ role: "assistant", content: message.content || "", tool_calls: message.tool_calls });
@@ -90,7 +98,16 @@ var ResearchAgentAgent = {
         this.emit(onEvent, { type: "tool-start", name: call.function.name, args });
         let result;
         try {
-          result = await ResearchAgentTools.execute(call.function.name, args, { collectionIDs: rag?.collectionIDs || [], useSemantic: Boolean(rag?.useSemantic), originalQuestion: question });
+          if (activeResearchTask && !(await ResearchAgentResearch.beforeTool(activeResearchTask, call.function.name, onEvent))) {
+            result = { error: "深度研究任务已暂停或达到工具预算。请综合已有证据作答。" };
+          } else {
+            result = await ResearchAgentTools.execute(call.function.name, args, {
+              collectionIDs: rag?.collectionIDs || [], useSemantic: Boolean(rag?.useSemantic), originalQuestion: question,
+              researchTask: activeResearchTask,
+              onCache: (event) => activeResearchTask && ResearchAgentResearch.recordCache(activeResearchTask, event, onEvent)
+            });
+            if (activeResearchTask) await ResearchAgentResearch.recordTool(activeResearchTask, call.function.name, args, result, onEvent);
+          }
           const found = this.extractCitations(call.function.name, result);
           citations.push(...found);
           this.emit(onEvent, { type: "tool-finish", name: call.function.name, args, count: Array.isArray(result) ? result.length : 0, citations: found });
@@ -101,7 +118,8 @@ var ResearchAgentAgent = {
         messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result).slice(0, 24000) });
       }
     }
-    throw new Error("助手在八个工具步骤后停止。请缩小问题范围后重试。");
+    if (activeResearchTask) await ResearchAgentResearch.pause(activeResearchTask, "达到单次运行的工具步骤上限；可继续任务。");
+    throw new Error("助手达到本次工具步骤上限，已保存研究进度。可继续任务以基于已有证据完成。 ");
   },
 
   skillPrompt(skills) {
