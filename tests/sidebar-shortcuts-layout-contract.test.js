@@ -11,5 +11,7 @@ assert.ok(source.includes("!event.isComposing"), "IME composition must not accid
 assert.ok(source.includes("research-agent-notes-card{flex:1 1 0;min-height:0;overflow:hidden}"), "notes card must receive a bounded flex height");
 assert.ok(source.includes("overflow-y:scroll"), "note preview must own a usable vertical scrollbar");
 assert.ok(source.includes("research-agent-note-title"), "note title and metadata must render as distinct non-overlapping elements");
+assert.ok(source.includes("research-agent-wiki-graph"), "knowledge management must expose the visual research Wiki graph");
+assert.ok(source.includes("为已入库文献补建 Wiki"), "users must be able to build a graph for entries indexed before this version");
 
 console.log("Sidebar shortcuts and layout contract passed.");

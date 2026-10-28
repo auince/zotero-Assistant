@@ -1,4 +1,4 @@
-/* global Zotero, ResearchAgentAgent, ResearchAgentIndexer, ResearchAgentJobs, ResearchAgentDailyNotes, ResearchAgentStorage, ResearchAgentMemory, ResearchAgentMarkdown, ResearchAgentTools */
+/* global Zotero, ResearchAgentAgent, ResearchAgentIndexer, ResearchAgentJobs, ResearchAgentDailyNotes, ResearchAgentStorage, ResearchAgentMemory, ResearchAgentMarkdown, ResearchAgentTools, ResearchAgentWiki */
 
 var ResearchAgentSidebar = {
   sectionID: null,
@@ -95,6 +95,7 @@ var ResearchAgentSidebar = {
       .research-agent-citations{display:none;margin-top:10px;padding-top:9px;border-top:1px solid var(--ra-border)}.research-agent-citations.has-items{display:block}.research-agent-citations-title{margin-bottom:6px;color:var(--fill-secondary,#687583);font-size:.82em;font-weight:700}.research-agent-citation-list{display:flex;flex-wrap:wrap;gap:5px}.research-agent-citation{max-width:100%;overflow:hidden;padding:4px 7px;border-radius:999px;background:var(--ra-accent-weak);color:var(--ra-accent);font-size:.82em;overflow-wrap:anywhere;text-decoration:none}a.research-agent-citation:hover{text-decoration:underline}
       .research-agent-composer{display:flex;flex-direction:column;gap:7px}.research-agent textarea{box-sizing:border-box;width:100%;min-height:108px;max-height:34vh;padding:10px;resize:vertical;border:1px solid var(--ra-border);border-radius:10px;background:var(--material-sidepane,#fff);color:inherit;font:menu;line-height:1.42}.research-agent textarea:focus{outline:2px solid color-mix(in srgb,var(--ra-accent) 48%,transparent);outline-offset:1px}.research-agent-sendline{display:grid;grid-template-columns:minmax(0,1fr) max-content max-content;align-items:center;gap:8px;min-width:0}.research-agent-hint{min-width:0;overflow:hidden;color:var(--fill-secondary,#687583);font-size:.82em;text-overflow:ellipsis;white-space:nowrap}.research-agent-remaining{color:var(--fill-secondary,#687583);font-size:.82em;white-space:nowrap}.research-agent-sendline .research-agent-primary{min-width:max-content;white-space:nowrap}.research-agent-remaining.warning{color:#a56812}.research-agent-remaining.over{color:#a53c3c;font-weight:650}@media(max-width:330px){.research-agent-sessionbar{grid-template-columns:minmax(0,1fr)}.research-agent-sessionbar .research-agent-primary{justify-self:start}.research-agent-sendline{grid-template-columns:minmax(0,1fr) max-content}.research-agent-hint{display:none}}
       .research-agent-card{display:flex;flex-direction:column;gap:9px;padding:11px;border:1px solid var(--ra-border);border-radius:11px;background:color-mix(in srgb,currentColor 2%,transparent)}.research-agent-card-title{font-weight:700}.research-agent-card-copy{margin:0;color:var(--fill-secondary,#687583);font-size:.9em;line-height:1.38}.research-agent-actions{display:flex;flex-wrap:wrap;gap:6px}.research-agent-progress{width:100%;height:6px;accent-color:var(--ra-accent)}.research-agent-entry-list{flex:1;min-height:145px;width:100%;box-sizing:border-box;border:1px solid var(--ra-border);border-radius:8px;background:var(--material-sidepane,#fff);color:inherit;font:menu}.research-agent-entry-list option{padding:5px}
+      .research-agent-wiki-card{min-height:0}.research-agent-wiki-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px}.research-agent-wiki-meta{color:var(--ra-muted);font-size:.82em}.research-agent-wiki-legend{display:flex;flex-wrap:wrap;gap:5px}.research-agent-wiki-legend span{padding:2px 6px;border:1px solid var(--ra-border);border-radius:999px;color:var(--ra-muted);font-size:.77em}.research-agent-wiki-graph{min-height:270px;max-height:380px;overflow:auto;border:1px solid var(--ra-border);border-radius:8px;background:var(--ra-surface);scrollbar-gutter:stable}.research-agent-wiki-empty{padding:28px 14px;color:var(--ra-muted);text-align:center;line-height:1.5}.research-agent-wiki-svg{display:block;min-width:500px}.research-agent-wiki-edge{stroke:color-mix(in srgb,var(--ra-muted) 58%,transparent);stroke-width:1.4}.research-agent-wiki-edge-label{fill:var(--ra-muted);font-size:10px}.research-agent-wiki-node{cursor:pointer}.research-agent-wiki-node circle{fill:var(--ra-accent-weak);stroke:var(--ra-accent);stroke-width:1.6}.research-agent-wiki-node:hover circle,.research-agent-wiki-node.is-selected circle{fill:var(--ra-accent);stroke:var(--ra-accent)}.research-agent-wiki-node text{fill:var(--ra-text);font-size:11px;font-weight:600;pointer-events:none}.research-agent-wiki-node.is-selected text{fill:var(--ra-accent-text)}.research-agent-wiki-detail{min-height:64px;padding:9px;border-left:3px solid var(--ra-accent);border-radius:0 7px 7px 0;background:var(--ra-subtle);line-height:1.45}.research-agent-wiki-detail-title{font-weight:700}.research-agent-wiki-detail p{margin:5px 0}.research-agent-wiki-chips{display:flex;flex-wrap:wrap;gap:4px}.research-agent-wiki-chips span{padding:2px 5px;border-radius:5px;background:var(--ra-accent-weak);color:var(--ra-accent);font-size:.8em}
 
       /* Follow Zotero/Firefox semantic colours. Do not hard-code a light or dark surface. */
       .research-agent{--ra-accent:AccentColor;--ra-accent-text:AccentColorText;--ra-surface:var(--material-sidepane,Canvas);--ra-surface-raised:Field;--ra-text:var(--fill-primary,CanvasText);--ra-muted:var(--fill-secondary,GrayText);--ra-border:color-mix(in srgb,CanvasText 18%,transparent);--ra-subtle:color-mix(in srgb,CanvasText 4%,Canvas);--ra-accent-weak:color-mix(in srgb,AccentColor 14%,Canvas);gap:9px;letter-spacing:.01em;color:var(--ra-text)}
@@ -140,7 +141,7 @@ var ResearchAgentSidebar = {
       sessionTab.classList.toggle("is-active", sessions);
       knowledgeTab.classList.toggle("is-active", page === "knowledge");
       notesTab.classList.toggle("is-active", page === "notes");
-      if (page === "knowledge") refreshEntries().catch((error) => { Zotero.logError(error); status.textContent = `错误：${error.message}`; });
+      if (page === "knowledge") refreshKnowledge().catch((error) => { Zotero.logError(error); status.textContent = `错误：${error.message}`; });
       if (page === "notes") renderNotes().catch((error) => { Zotero.logError(error); status.textContent = `无法读取笔记：${error.message}`; });
     };
 
@@ -475,6 +476,12 @@ var ResearchAgentSidebar = {
           catch (error) { status.textContent = `无法读取当前论文：${error.message}`; return; }
         }
       }
+      const wikiArticleKey = (currentItem() || (state.active.paper?.itemID ? Zotero.Items.get(state.active.paper.itemID) : null))?.key || state.active.paper?.key;
+      let wikiContext = "";
+      if (wikiArticleKey) {
+        try { wikiContext = await ResearchAgentWiki.contextForArticle(wikiArticleKey, question); }
+        catch (error) { Zotero.logError(error); }
+      }
       if (!existingMessage) {
         await ResearchAgentStorage.appendMessage(state.active, "user", question);
         state.summaries = await ResearchAgentStorage.listConversations(); renderSessions();
@@ -484,7 +491,7 @@ var ResearchAgentSidebar = {
       followLog = true; scrollToLatest(true);
       const responseView = this.createResponseView(doc, log, scrollToLatest);
       try {
-        const result = await ResearchAgentAgent.answer(question, { conversation: state.active, rag: ragConfig, learning: state.active.learning, onEvent: (event) => responseView.handle(event) });
+        const result = await ResearchAgentAgent.answer(question, { conversation: state.active, rag: ragConfig, learning: state.active.learning, wikiContext, onEvent: (event) => responseView.handle(event) });
         responseView.finish(result);
         await ResearchAgentStorage.appendMessage(state.active, "assistant", result.answer, { citations: result.citations, trace: responseView.trace() });
         state.summaries = await ResearchAgentStorage.listConversations(); renderSessions(); renderConversation(); updateRemaining(); status.textContent = "回答完成，已保存到本地会话文件。";
@@ -514,6 +521,68 @@ var ResearchAgentSidebar = {
     const entries = doc.createElement("select"); entries.className = "research-agent-entry-list"; entries.multiple = true; entries.size = 7;
     const selectedKeys = () => [...entries.selectedOptions].map((option) => option.value);
     const refreshEntries = async () => { const records = await ResearchAgentIndexer.listEntries(); entries.replaceChildren(); for (const record of records) { const option = doc.createElement("option"); option.value = record.key; option.textContent = `${record.title} [${record.key}] — ${record.collectionPath.join(" / ")}`; entries.append(option); } if (!records.length) { const option = doc.createElement("option"); option.disabled = true; option.textContent = "尚未嵌入任何文献"; entries.append(option); } };
+    const wikiCard = doc.createElement("div"); wikiCard.className = "research-agent-card research-agent-wiki-card";
+    const wikiTitle = doc.createElement("div"); wikiTitle.className = "research-agent-card-title"; wikiTitle.textContent = "研究 Wiki";
+    const wikiCopy = doc.createElement("p"); wikiCopy.className = "research-agent-card-copy"; wikiCopy.textContent = "每篇入库文献都会成为一个本地 Wiki 节点。入库时，当前对话模型会提炼研究概要、领域、方法和可追溯的文献关系；关系始终保存在本机，可随时重建。";
+    const wikiToolbar = doc.createElement("div"); wikiToolbar.className = "research-agent-wiki-toolbar";
+    const wikiMeta = doc.createElement("span"); wikiMeta.className = "research-agent-wiki-meta";
+    const wikiGraph = doc.createElement("div"); wikiGraph.className = "research-agent-wiki-graph";
+    const wikiDetail = doc.createElement("div"); wikiDetail.className = "research-agent-wiki-detail";
+    const wikiLegend = doc.createElement("div"); wikiLegend.className = "research-agent-wiki-legend";
+    for (const [type, label] of Object.entries(ResearchAgentWiki.relationTypes)) { const chip = doc.createElement("span"); chip.textContent = label; chip.dataset.type = type; wikiLegend.append(chip); }
+    let selectedWikiKey = null;
+    const shortWikiText = (text, length = 20) => { const value = String(text || "未命名文献").replace(/\s+/g, " ").trim(); return value.length > length ? `${value.slice(0, Math.max(1, length - 1))}…` : value; };
+    const renderWikiDetail = (node, wiki, selectedEdges = []) => {
+      wikiDetail.replaceChildren();
+      if (!node) { wikiDetail.textContent = "单击图谱中的文献节点，可查看它的研究概要、方法标签和关系依据。"; return; }
+      const title = doc.createElement("div"); title.className = "research-agent-wiki-detail-title"; title.textContent = node.title;
+      const summary = doc.createElement("p"); summary.textContent = node.summary || "暂无模型生成的研究概要；可在填写对话模型后使用“为已入库文献补建 Wiki”。";
+      const metadata = doc.createElement("p"); metadata.textContent = `领域：${node.domain || "未标注"}${node.collectionPath?.length ? ` · 分类：${node.collectionPath.join(" / ")}` : ""}`;
+      const chips = doc.createElement("div"); chips.className = "research-agent-wiki-chips";
+      for (const method of node.methods || []) { const chip = doc.createElement("span"); chip.textContent = method; chips.append(chip); }
+      wikiDetail.append(title, summary, metadata); if (chips.childElementCount) wikiDetail.append(chips);
+      if (selectedEdges.length) {
+        const relation = doc.createElement("p");
+        relation.textContent = `关联：${selectedEdges.map((edge) => `${ResearchAgentWiki.relationLabel(edge.type)}${edge.reason ? `（${edge.reason}）` : ""}`).join("；")}`;
+        wikiDetail.append(relation);
+      }
+    };
+    const renderWiki = async () => {
+      const wiki = await ResearchAgentWiki.getGraph();
+      const nodes = Object.values(wiki.nodes || {}).sort((a, b) => String(a.title).localeCompare(String(b.title), "zh-CN"));
+      const nodeKeys = new Set(nodes.map((node) => node.key));
+      const edges = (wiki.edges || []).filter((edge) => nodeKeys.has(edge.source) && nodeKeys.has(edge.target));
+      wikiMeta.textContent = `${nodes.length} 篇文献 · ${edges.length} 条关系${wiki.updatedAt ? ` · 更新于 ${this.shortDate(wiki.updatedAt)}` : ""}`;
+      wikiGraph.replaceChildren();
+      if (!nodes.length) {
+        const empty = doc.createElement("div"); empty.className = "research-agent-wiki-empty"; empty.textContent = "还没有 Wiki 节点。先嵌入一篇文献，或在已有嵌入后点击“为已入库文献补建 Wiki”。";
+        wikiGraph.append(empty); renderWikiDetail(null, wiki); return;
+      }
+      if (!nodeKeys.has(selectedWikiKey)) selectedWikiKey = nodes[0].key;
+      const columns = Math.max(3, Math.ceil(Math.sqrt(nodes.length)));
+      const width = Math.max(520, columns * 160);
+      const rows = Math.ceil(nodes.length / columns);
+      const height = Math.max(270, rows * 118 + 52);
+      const positions = new Map(nodes.map((node, index) => [node.key, { x: 78 + (index % columns) * ((width - 156) / Math.max(1, columns - 1)), y: 56 + Math.floor(index / columns) * ((height - 112) / Math.max(1, rows - 1 || 1)) }]));
+      const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("class", "research-agent-wiki-svg"); svg.setAttribute("width", String(width)); svg.setAttribute("height", String(height)); svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      for (const edge of edges) {
+        const start = positions.get(edge.source); const end = positions.get(edge.target); if (!start || !end) continue;
+        const line = doc.createElementNS("http://www.w3.org/2000/svg", "line"); line.setAttribute("class", "research-agent-wiki-edge"); line.setAttribute("x1", start.x); line.setAttribute("y1", start.y); line.setAttribute("x2", end.x); line.setAttribute("y2", end.y); svg.append(line);
+      }
+      const selectNode = (key) => { selectedWikiKey = key; renderWiki().catch((error) => { Zotero.logError(error); }); };
+      for (const node of nodes) {
+        const position = positions.get(node.key); const group = doc.createElementNS("http://www.w3.org/2000/svg", "g"); group.setAttribute("class", `research-agent-wiki-node${node.key === selectedWikiKey ? " is-selected" : ""}`); group.setAttribute("transform", `translate(${position.x} ${position.y})`); group.setAttribute("tabindex", "0"); group.setAttribute("role", "button"); group.setAttribute("aria-label", node.title); group.addEventListener("click", () => selectNode(node.key)); group.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectNode(node.key); } });
+        const circle = doc.createElementNS("http://www.w3.org/2000/svg", "circle"); circle.setAttribute("r", "37"); group.append(circle);
+        const title = doc.createElementNS("http://www.w3.org/2000/svg", "title"); title.textContent = `${node.title}\n${node.summary || ""}`; group.append(title);
+        const text = doc.createElementNS("http://www.w3.org/2000/svg", "text"); text.setAttribute("text-anchor", "middle"); text.setAttribute("dy", "-3"); text.textContent = shortWikiText(node.title, 18); group.append(text);
+        const domain = doc.createElementNS("http://www.w3.org/2000/svg", "text"); domain.setAttribute("text-anchor", "middle"); domain.setAttribute("dy", "13"); domain.setAttribute("font-size", "9"); domain.textContent = shortWikiText(node.domain || "未标注", 14); group.append(domain);
+        svg.append(group);
+      }
+      wikiGraph.append(svg);
+      const selectedNode = wiki.nodes[selectedWikiKey];
+      renderWikiDetail(selectedNode, wiki, edges.filter((edge) => edge.source === selectedWikiKey || edge.target === selectedWikiKey));
+    };
+    const refreshKnowledge = async () => { await Promise.all([refreshEntries(), renderWiki()]); };
     const entryActions = doc.createElement("div"); entryActions.className = "research-agent-actions";
     const checkTools = async () => {
       status.textContent = "正在检查本地知识库、网页、arXiv 与 GitHub 源码工具…";
@@ -524,8 +593,19 @@ var ResearchAgentSidebar = {
         Zotero.logError(error); status.textContent = `工具检查失败：${error.message}`;
       }
     };
-    entryActions.append(this.button(doc, "刷新", refreshEntries), this.button(doc, "重嵌入所选", () => startJob((callback) => ResearchAgentIndexer.startReembedEntries(selectedKeys(), callback))), this.button(doc, "移除所选", async () => { const keys = selectedKeys(); if (!keys.length || !doc.defaultView.confirm(`从本地知识库移除 ${keys.length} 个条目？Zotero 原始文献不会被删除。`)) return; status.textContent = await ResearchAgentIndexer.removeEntries(keys); await refreshEntries(); }), this.button(doc, "检查工具可用性", checkTools), this.button(doc, "检查并更新会话笔记", () => generateTodayNote()));
-    management.append(managementTitle, entryCopy, entries, entryActions); knowledgePanel.append(indexCard, management);
+    entryActions.append(this.button(doc, "刷新", refreshKnowledge), this.button(doc, "重嵌入所选", () => startJob((callback) => ResearchAgentIndexer.startReembedEntries(selectedKeys(), callback))), this.button(doc, "移除所选", async () => { const keys = selectedKeys(); if (!keys.length || !doc.defaultView.confirm(`从本地知识库移除 ${keys.length} 个条目？Zotero 原始文献不会被删除。`)) return; status.textContent = await ResearchAgentIndexer.removeEntries(keys); await refreshKnowledge(); }), this.button(doc, "检查工具可用性", checkTools), this.button(doc, "检查并更新会话笔记", () => generateTodayNote()));
+    const rebuildWiki = async () => {
+      try {
+        const job = await ResearchAgentIndexer.rebuildWiki(updateProgress);
+        updateProgress(job);
+        const result = await job.promise;
+        status.textContent = `${result.state}：已生成 ${result.completed}/${result.total} 篇文献的 Wiki 关系。`;
+        await renderWiki();
+      } catch (error) { Zotero.logError(error); status.textContent = `无法构建研究 Wiki：${error.message}`; }
+    };
+    wikiToolbar.append(this.button(doc, "刷新关系图", () => renderWiki().catch((error) => { Zotero.logError(error); status.textContent = `无法刷新关系图：${error.message}`; })), this.button(doc, "为已入库文献补建 Wiki", rebuildWiki), wikiMeta);
+    wikiCard.append(wikiTitle, wikiCopy, wikiToolbar, wikiLegend, wikiGraph, wikiDetail);
+    management.append(managementTitle, entryCopy, entries, entryActions); knowledgePanel.append(indexCard, wikiCard, management);
     const notesCard = doc.createElement("div"); notesCard.className = "research-agent-card research-agent-notes-card";
     const notesTitle = doc.createElement("div"); notesTitle.className = "research-agent-card-title"; notesTitle.textContent = "会话研究笔记";
     const notesCopy = doc.createElement("p"); notesCopy.className = "research-agent-card-copy"; notesCopy.textContent = "每个会话对应一份持续演化的本地 Markdown 笔记。每日会自动检查，只更新内容发生变化的会话；笔记会保留关注点假设、证据缺口、可验证下一步与延展性反问。";

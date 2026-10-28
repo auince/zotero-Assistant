@@ -24,4 +24,5 @@ assert.equal(chunks[0].level, "metadata");
 assert.ok(chunks.some((chunk) => chunk.level === "paragraph"));
 assert.ok(chunks.every((chunk) => chunk.articleKey === "ABCD1234"));
 assert.equal(context.ResearchAgentIndexer.score(chunks[0], ["hierarchical"]), 4);
+assert.ok(fs.readFileSync("src/indexer.js", "utf8").includes("ResearchAgentWiki.upsertArticle(article)"), "indexing must create or refresh the derived Wiki card");
 console.log(`Indexer contract passed with ${chunks.length} hierarchical chunks.`);

@@ -28,7 +28,7 @@ var ResearchAgentAgent = {
 
 输出可按需要包含“关键直觉”“试着判断”“提示”“完整讲解”这些短标题，但不要机械套用。`,
 
-  async answer(question, { onEvent, conversation, rag, learning } = {}) {
+  async answer(question, { onEvent, conversation, rag, learning, wikiContext } = {}) {
     const apiKey = Zotero.Prefs.get("extensions.researchAgent.deepseekAPIKey", true);
     if (!apiKey) throw new Error("请先在 Zotero 设置 → Research Agent 中填写对话模型 API 密钥。");
     const ragEnabled = rag ? Boolean(rag.enabled) : true;
@@ -45,6 +45,10 @@ var ResearchAgentAgent = {
     if (installedSkills.length) {
       messages.splice(1, 0, { role: "system", content: this.skillPrompt(installedSkills) });
       this.emit(onEvent, { type: "memory", text: `已加载 ${installedSkills.length} 个用户启用的技能：${installedSkills.map((skill) => skill.name).join("、")}。` });
+    }
+    if (wikiContext) {
+      messages.splice(1, 0, { role: "system", content: `研究 Wiki 已为当前阅读材料提供了以下关联脉络。它是用于比较、迁移和提出新问题的辅助记忆，不是替代原文证据：\n\n${wikiContext}\n\n回答时可据此举一反三，但要明确哪些是文献摘要直接支持、哪些是你基于共通方法或问题结构作出的推断。涉及具体事实时仍以当前论文、检索结果或用户提供内容为准；引用 Wiki 条目时保留 [item key]。` });
+      this.emit(onEvent, { type: "memory", text: "已载入研究 Wiki 中与当前论文相关的文献概要。" });
     }
     if (learning?.enabled) messages.splice(1, 0, { role: "system", content: this.learningPrompt });
     if (ragEnabled) {

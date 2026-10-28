@@ -68,6 +68,10 @@ var ResearchAgentIndexer = {
     const chunks = this.chunkArticle(article);
     if (index.semantic.enabled) await this.embedChunks(chunks);
     index.chunks.push(...chunks);
+    // Wiki construction is intentionally best-effort: a missing model key,
+    // temporary network failure, or exhausted quota must never invalidate an
+    // otherwise successful local embedding job.
+    try { await ResearchAgentWiki.upsertArticle(article); } catch (error) { Zotero.logError(error); }
   },
 
   async listEntries() {
@@ -106,7 +110,15 @@ var ResearchAgentIndexer = {
     for (const key of keys) delete index.articles[key];
     index.chunks = index.chunks.filter((chunk) => !keys.includes(chunk.articleKey));
     await ResearchAgentStorage.saveIndex(index);
+    try { await ResearchAgentWiki.removeArticles(keys); } catch (error) { Zotero.logError(error); }
     return `Removed ${keys.length} knowledge-base entries.`;
+  },
+
+  async rebuildWiki(onProgress) {
+    const index = await ResearchAgentStorage.getIndex();
+    const articles = Object.values(index.articles || {});
+    if (!articles.length) throw new Error("尚未嵌入任何文献，无法构建研究 Wiki。");
+    return ResearchAgentWiki.rebuild(articles, onProgress);
   },
 
   collectionPath(collection) {

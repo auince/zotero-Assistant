@@ -3,6 +3,7 @@
 var ResearchAgentStorage = {
   root: null,
   indexPath: null,
+  wikiPath: null,
   conversationsPath: null,
   conversationIndexPath: null,
   conversationsDirectoryPath: null,
@@ -14,6 +15,7 @@ var ResearchAgentStorage = {
     if (this.root) return;
     this.root = this.join(Zotero.DataDirectory.dir, "research-agent");
     this.indexPath = this.join(this.root, "knowledge-index.json");
+    this.wikiPath = this.join(this.root, "research-wiki.json");
     this.conversationsPath = this.join(this.root, "conversations.jsonl");
     this.conversationIndexPath = this.join(this.root, "conversation-index.json");
     this.conversationsDirectoryPath = this.join(this.root, "conversations");
@@ -52,6 +54,23 @@ var ResearchAgentStorage = {
   async saveIndex(index) {
     index.updatedAt = new Date().toISOString();
     await this.writeJSON(this.indexPath, index);
+  },
+
+  async getWiki() {
+    const fallback = { version: 1, updatedAt: null, nodes: {}, edges: [] };
+    const wiki = await this.readJSON(this.wikiPath, fallback);
+    // Keep a partially written or older file from making the whole assistant
+    // unusable. Wiki content is a derived, rebuildable local cache.
+    wiki.version ||= 1;
+    wiki.nodes ||= {};
+    wiki.edges = Array.isArray(wiki.edges) ? wiki.edges : [];
+    return wiki;
+  },
+
+  async saveWiki(wiki) {
+    wiki.version ||= 1;
+    wiki.updatedAt = new Date().toISOString();
+    await this.writeJSON(this.wikiPath, wiki);
   },
 
   conversationPath(id) {

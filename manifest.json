@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Research Agent for Zotero",
-  "version": "0.4.16",
+  "version": "0.4.17",
   "description": "Local collection knowledge base and DeepSeek research agent for Zotero.",
   "author": "Local prototype",
   "icons": {
