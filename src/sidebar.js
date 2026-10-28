@@ -161,7 +161,7 @@ var ResearchAgentSidebar = {
     const ragToggle = doc.createElement("input"); ragToggle.type = "checkbox";
     const ragLabel = doc.createElement("label"); ragLabel.append(ragToggle, doc.createTextNode("启用知识库检索（RAG）"));
     const ragSelect = doc.createElement("select"); ragSelect.disabled = true;
-    const ragNote = doc.createElement("span"); ragNote.className = "research-agent-rag-note"; ragNote.textContent = "未启用 RAG：不检索本地知识库；若有当前论文会一并分析，联网、arXiv 与 GitHub 工具仍由助手按需调用。";
+    const ragNote = doc.createElement("span"); ragNote.className = "research-agent-rag-note"; ragNote.textContent = "未选择 RAG 范围：优先分析当前论文；助手仍可在确有必要时自主查询本地 Wiki、知识库、联网、arXiv、GitHub 或计算工具。";
     rag.append(ragLabel, ragSelect, ragNote);
     const learning = doc.createElement("div"); learning.className = "research-agent-learning";
     const learningToggle = doc.createElement("input"); learningToggle.type = "checkbox";
@@ -268,10 +268,10 @@ var ResearchAgentSidebar = {
     ragToggle.addEventListener("change", () => {
       ragSelect.disabled = !ragToggle.checked;
       if (ragToggle.checked) {
-        ragNote.textContent = "请选择一个已嵌入的知识库；本地检索仅在该范围内进行。联网、arXiv 与 GitHub 工具可按需调用；不会调用硅基流动。";
+        ragNote.textContent = "请选择一个已嵌入的知识库，作为本地检索的优先范围。联网、arXiv、GitHub、研究 Wiki 与计算工具仍可由助手按需调用；不会调用硅基流动。";
         refreshRagBases().catch((error) => { Zotero.logError(error); status.textContent = `无法读取知识库：${error.message}`; });
       } else {
-        ragNote.textContent = "未启用 RAG：不检索本地知识库；若有当前论文会一并分析，联网、arXiv 与 GitHub 工具仍由助手按需调用。";
+        ragNote.textContent = "未选择 RAG 范围：优先分析当前论文；助手仍可在确有必要时自主查询本地 Wiki、知识库、联网、arXiv、GitHub 或计算工具。";
       }
     });
     const renderLearningMode = () => {

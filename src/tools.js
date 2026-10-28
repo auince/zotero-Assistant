@@ -1,4 +1,4 @@
-/* global Zotero, DOMParser, ResearchAgentIndexer, ResearchAgentStorage */
+/* global Zotero, DOMParser, ResearchAgentIndexer, ResearchAgentStorage, ResearchAgentWiki */
 
 var ResearchAgentTools = {
   definitions: [
@@ -8,6 +8,14 @@ var ResearchAgentTools = {
         name: "search_knowledge_base",
         description: "Search indexed Zotero collections. Returns hierarchical citations at article or paragraph level.",
         parameters: { type: "object", properties: { query: { type: "string" }, limit: { type: "integer", minimum: 1, maximum: 12 } }, required: ["query"] }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "search_research_wiki",
+        description: "Search local Research Wiki cards by paper title, field, method, concept, summary, and saved relations. Use to locate comparable papers before retrieving primary paragraph evidence.",
+        parameters: { type: "object", properties: { query: { type: "string" }, limit: { type: "integer", minimum: 1, maximum: 10 } }, required: ["query"] }
       }
     },
     {
@@ -33,25 +41,73 @@ var ResearchAgentTools = {
         description: "Search GitHub source code. A GitHub access token is required by the Code Search API.",
         parameters: { type: "object", properties: { query: { type: "string" }, limit: { type: "integer", minimum: 1, maximum: 10 } }, required: ["query"] }
       }
+    },
+    {
+      type: "function",
+      function: {
+        name: "calculate",
+        description: "Evaluate a simple arithmetic expression accurately. Supports parentheses, +, -, *, /, %, ^ and decimal/scientific numbers. Use for numerical checks; never use it to execute code.",
+        parameters: { type: "object", properties: { expression: { type: "string", description: "Arithmetic expression, e.g. '(64 * 0.75) / 12'" } }, required: ["expression"] }
+      }
     }
   ],
 
-  definitionsFor({ ragEnabled = true } = {}) {
-    // RAG controls access to the user's local collection only. External research
-    // remains an optional agent tool in every chat, rather than a separate mode.
-    return this.definitions.filter((definition) => ragEnabled || definition.function.name !== "search_knowledge_base");
+  definitionsFor() {
+    // The RAG switch selects a preferred scope, not an artificial capability
+    // wall. The agent may still inspect a relevant local source when necessary.
+    return this.definitions;
   },
 
   async execute(name, args, scope = {}) {
+    if (name === "calculate") return this.calculate(args?.expression);
     const query = String(args?.query || "").trim();
     if (!query) throw new Error("检索关键词不能为空。" );
     switch (name) {
       case "search_knowledge_base": return ResearchAgentIndexer.search(query, args.limit || 8, scope.collectionIDs || [], { useSemantic: Boolean(scope.useSemantic) });
+      case "search_research_wiki": return this.searchResearchWiki(query, args.limit || 6);
       case "search_web": return this.searchWeb(query, args.limit || 5);
       case "search_arxiv": return this.searchArxiv(query, args.limit || 5);
       case "search_github_code": return this.searchGitHubCode(query, args.limit || 5);
       default: throw new Error(`Unknown agent tool: ${name}`);
     }
+  },
+
+  async searchResearchWiki(query, limit) {
+    const wiki = await ResearchAgentWiki.getGraph();
+    const terms = this.tokens(query);
+    const nodes = Object.values(wiki.nodes || {});
+    return nodes.map((node) => {
+      const haystack = `${node.title || ""} ${node.domain || ""} ${(node.methods || []).join(" ")} ${(node.concepts || []).join(" ")} ${node.summary || ""}`.toLowerCase();
+      const score = terms.reduce((total, term) => total + (haystack.includes(term) ? (String(node.title || "").toLowerCase().includes(term) ? 4 : 1) : 0), 0);
+      const relations = (wiki.edges || []).filter((edge) => edge.source === node.key || edge.target === node.key).map((edge) => ({
+        articleKey: edge.source === node.key ? edge.target : edge.source,
+        type: ResearchAgentWiki.relationLabel(edge.type), reason: edge.reason || ""
+      }));
+      return { key: node.key, title: node.title, domain: node.domain || "未标注", methods: node.methods || [], summary: node.summary || "", relations, score };
+    }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, limit);
+  },
+
+  calculate(expression) {
+    const source = String(expression || "").trim();
+    if (!source || source.length > 240) throw new Error("请提供不超过 240 个字符的算式。");
+    const tokens = source.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|[()+\-*/%^]/gi) || [];
+    if (tokens.join("") !== source.replace(/\s+/g, "")) throw new Error("算式只能包含数字、科学计数法、括号与 + - * / % ^ 运算符。");
+    let position = 0;
+    const peek = () => tokens[position];
+    const take = () => tokens[position++];
+    const finite = (value) => { if (!Number.isFinite(value)) throw new Error("计算结果不是有限数值。"); return value; };
+    const primary = () => { if (peek() === "(") { take(); const value = additive(); if (take() !== ")") throw new Error("括号不匹配。"); return value; } const token = take(); if (!token || !/^(?:\d|\.)/.test(token)) throw new Error("算式格式不正确。"); return finite(Number(token)); };
+    const unary = () => { if (peek() === "+") { take(); return unary(); } if (peek() === "-") { take(); return finite(-unary()); } return primary(); };
+    const power = () => { let value = unary(); if (peek() === "^") { take(); value = finite(value ** power()); } return value; };
+    const multiplicative = () => { let value = power(); while (["*", "/", "%"].includes(peek())) { const operator = take(); const right = power(); if ((operator === "/" || operator === "%") && right === 0) throw new Error("不能除以零。"); value = finite(operator === "*" ? value * right : operator === "/" ? value / right : value % right); } return value; };
+    const additive = () => { let value = multiplicative(); while (["+", "-"].includes(peek())) { const operator = take(); const right = multiplicative(); value = finite(operator === "+" ? value + right : value - right); } return value; };
+    const result = additive();
+    if (position !== tokens.length) throw new Error("算式格式不正确。");
+    return { expression: source, result };
+  },
+
+  tokens(value) {
+    return [...new Set((String(value || "").toLowerCase().match(/[\p{L}\p{N}_-]{2,}/gu) || []))];
   },
 
   async request(method, url, options = {}) {
@@ -147,6 +203,11 @@ var ResearchAgentTools = {
       const index = await ResearchAgentStorage.getIndex();
       return Object.keys(index.articles || {}).length ? `${Object.keys(index.articles).length} 篇已索引文献` : "尚未嵌入文献（功能可用）";
     });
+    await run("研究 Wiki", async () => {
+      const wiki = await ResearchAgentWiki.getGraph();
+      return Object.keys(wiki.nodes || {}).length ? `${Object.keys(wiki.nodes).length} 个文献节点` : "尚未建立节点（功能可用）";
+    });
+    await run("计算", () => this.calculate("(7 + 5) * 3").result);
     await run("网页搜索", () => this.searchWeb("Zotero plugin API", 1));
     await run("arXiv", () => this.searchArxiv("machine learning", 1));
     await run("GitHub 源码", () => this.searchGitHubCode("zotero language:javascript", 1), true);

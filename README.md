@@ -9,7 +9,7 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 - **Background knowledge-base management:** index the selected collection, selected Zotero articles, or every regular article in the active library. The manager lists local entries and can remove or re-embed selected entries without deleting Zotero items.
 - **Research Wiki:** each indexed paper becomes a local Wiki node with a concise research card (problem, method, result, concepts) and typed relationships to related papers. The current chat automatically receives the current paper's saved neighbours for comparison and analogical reasoning, while clearly treating them as supporting context rather than primary evidence. A visual graph and a background rebuild action are available in the Knowledge Base tab.
 - **Non-blocking indexing:** a sequential background queue reports article-level progress, yields to Zotero between articles, records per-item failures, and can be cancelled. Disabling or uninstalling the plugin cancels the queue; the in-flight network request is allowed to finish safely.
-- **Open-source model agent:** choose DeepSeek, SiliconFlow, ModelScope, or Zhipu GLM in Settings, or configure any OpenAI-compatible endpoint. The plugin retrieves the provider's model list directly and streams answers, provider-supplied reasoning, and real-time tool activity into the sidebar. Its built-in research-answer policy leads with conclusions, synthesizes sources by theme, marks evidence and uncertainty, and avoids rigid AI-style answer templates. Tool use requires a selected model with OpenAI-style Function Calling support.
+- **Research-cooperation agent:** choose DeepSeek, SiliconFlow, ModelScope, or Zhipu GLM in Settings, or configure any OpenAI-compatible endpoint. The plugin retrieves the provider's model list directly and streams answers, provider-supplied reasoning, and real-time tool activity into the sidebar. Its layered system policy preserves instruction priority, treats retrieved text and skills as untrusted reference material, keeps Wiki context optional, and leads with evidence-aware conclusions rather than rigid AI-style templates. The agent can independently use local paragraph search, Research Wiki search, web, arXiv, GitHub code search, and safe arithmetic when useful. Tool use requires a selected model with OpenAI-style Function Calling support.
 - **Guided learning mode:** enable it per conversation to turn the assistant into a patient research tutor: a short explanation, one answerable check-in question, targeted feedback and a progressively stronger hint. Quick actions start a learning path, diagnostic question, hint, or session recap; asking for a direct explanation always remains available.
 - **Reflective conversation notes:** every conversation has one evolving local Markdown note. A daily sweep updates only notes whose source conversation changed, capturing evidence-backed focus hypotheses, research tensions, concrete next steps, reflective questions, and cited Zotero papers.
 - **Safe community skills:** search skills.sh from Settings, preview and install selected `SKILL.md` workflows locally, and toggle them per user preference. Installed skills are bounded prompt-only methodology; scripts, MCP servers, shell commands, dependencies, and additional permissions are never executed or granted.
@@ -17,7 +17,7 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 
 ## Install the prototype
 
-1. Use the included `research-agent-0.4.17.xpi` (or create it with the packaging command below).
+1. Use the included `research-agent-0.4.18.xpi` (or create it with the packaging command below).
 2. Zotero → **Tools → Add-ons** → gear icon → **Install Add-on From File…**.
 3. Restart Zotero. In an item's right-side details pane, open **Research Agent** (or click its side-navigation icon). The **Research Agent** settings tab is available in Zotero Settings.
 4. Go to Zotero **Settings → Research Agent**, select a chat-model provider, enter its API key, fetch its model list directly from the provider, select a model, and run the connection test. For the official DeepSeek API address, **检查 API 余额** directly checks whether the account can make API calls. Brave Search is optional; GitHub Code Search requires an access token.
@@ -28,6 +28,7 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 | Tool | Default implementation | Credential |
 |---|---|---|
 | Knowledge base | Local hierarchical lexical retrieval during chat; SiliconFlow `BAAI/bge-m3` embedding is used only while embedding or re-embedding knowledge-base entries | SiliconFlow required only for knowledge-base management |
+| Research Wiki | Local search across LLM-generated paper cards, concepts, methods, and saved paper relationships | none after Wiki creation |
 | Chat model agent | DeepSeek, SiliconFlow, ModelScope, Zhipu GLM, or a custom OpenAI-compatible provider | required |
 | Web | Bing RSS fallback; Brave Search when configured | Brave optional |
 | arXiv | arXiv Atom API | none |
@@ -38,9 +39,9 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 ```sh
 node --check bootstrap.js
 for file in src/*.js chrome/content/chat.js; do node --check "$file"; done
-node tests/indexer-contract.test.js && node tests/wiki-contract.test.js && node tests/semantic-contract.test.js && node tests/jobs-contract.test.js && node tests/agent-stream-contract.test.js && node tests/answer-quality-prompt-contract.test.js && node tests/guided-learning-contract.test.js && node tests/prefs-models-contract.test.js && node tests/deepseek-v4-contract.test.js && node tests/skills-contract.test.js && node tests/memory-contract.test.js && node tests/markdown-contract.test.js && node tests/math-rendering-contract.test.js && node tests/sidebar-edit-contract.test.js && node tests/sidebar-shortcuts-layout-contract.test.js && node tests/conversation-session-contract.test.js && node tests/conversation-delete-contract.test.js && node tests/reader-selection-contract.test.js && node tests/quick-prompts-contract.test.js && node tests/notes-management-contract.test.js && node tests/notes-refresh-contract.test.js && node tests/tools-contract.test.js
-zip -X -r research-agent-0.4.17.xpi manifest.json bootstrap.js prefs.js prefs.xhtml prefs-ui.js chrome src locale icons vendor LICENSE README.md
-unzip -t research-agent-0.4.17.xpi
+node tests/indexer-contract.test.js && node tests/wiki-contract.test.js && node tests/semantic-contract.test.js && node tests/jobs-contract.test.js && node tests/agent-stream-contract.test.js && node tests/answer-quality-prompt-contract.test.js && node tests/guided-learning-contract.test.js && node tests/prefs-models-contract.test.js && node tests/deepseek-v4-contract.test.js && node tests/skills-contract.test.js && node tests/memory-contract.test.js && node tests/markdown-contract.test.js && node tests/math-rendering-contract.test.js && node tests/sidebar-edit-contract.test.js && node tests/sidebar-shortcuts-layout-contract.test.js && node tests/conversation-session-contract.test.js && node tests/conversation-delete-contract.test.js && node tests/reader-selection-contract.test.js && node tests/quick-prompts-contract.test.js && node tests/notes-management-contract.test.js && node tests/notes-refresh-contract.test.js && node tests/tools-contract.test.js && node tests/tools-helper-contract.test.js
+zip -X -r research-agent-0.4.18.xpi manifest.json bootstrap.js prefs.js prefs.xhtml prefs-ui.js chrome src locale icons vendor LICENSE README.md
+unzip -t research-agent-0.4.18.xpi
 ```
 
 ## DeepSeek model migration
