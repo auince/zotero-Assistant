@@ -145,7 +145,7 @@ var ResearchAgentSidebar = {
       if (page === "notes") renderNotes().catch((error) => { Zotero.logError(error); status.textContent = `无法读取笔记：${error.message}`; });
     };
 
-    const state = { active: null, summaries: [], knowledgeBases: [], switchRequest: 0 };
+    const state = { active: null, summaries: [], switchRequest: 0 };
     const sessionBar = doc.createElement("div"); sessionBar.className = "research-agent-sessionbar";
     const sessionTitle = doc.createElement("div"); sessionTitle.className = "research-agent-session-title";
     const newSession = this.button(doc, "新对话", () => createSession()); newSession.classList.add("research-agent-primary"); sessionBar.append(sessionTitle, newSession);
@@ -157,12 +157,6 @@ var ResearchAgentSidebar = {
     const bindPaper = this.button(doc, "关联当前文献", () => bindCurrentPaper());
     drawer.append(sessionList, bindPaper, syncLabel);
     sessionPanel.append(sessionBar, drawer);
-    const rag = doc.createElement("div"); rag.className = "research-agent-rag";
-    const ragToggle = doc.createElement("input"); ragToggle.type = "checkbox";
-    const ragLabel = doc.createElement("label"); ragLabel.append(ragToggle, doc.createTextNode("启用知识库检索（RAG）"));
-    const ragSelect = doc.createElement("select"); ragSelect.disabled = true;
-    const ragNote = doc.createElement("span"); ragNote.className = "research-agent-rag-note"; ragNote.textContent = "未选择 RAG 范围：优先分析当前论文；助手仍可在确有必要时自主查询本地 Wiki、知识库、联网、arXiv、GitHub 或计算工具。";
-    rag.append(ragLabel, ragSelect, ragNote);
     const learning = doc.createElement("div"); learning.className = "research-agent-learning";
     const learningToggle = doc.createElement("input"); learningToggle.type = "checkbox";
     const learningLabel = doc.createElement("label"); learningLabel.className = "research-agent-learning-label"; learningLabel.append(learningToggle, doc.createTextNode("学习辅导模式"));
@@ -185,7 +179,7 @@ var ResearchAgentSidebar = {
     const send = this.button(doc, "发送", () => ask()); send.classList.add("research-agent-primary");
     const sendLine = doc.createElement("div"); sendLine.className = "research-agent-sendline";
     const hint = doc.createElement("span"); hint.className = "research-agent-hint"; hint.textContent = "Enter 发送 · ⌘ / Ctrl + Enter 换行"; sendLine.append(hint, remaining, send);
-    composer.append(input, sendLine); chatPanel.append(rag, learning, context, quickPrompts, log, composer);
+    composer.append(input, sendLine); chatPanel.append(learning, context, quickPrompts, log, composer);
     const resizeInput = () => {
       input.style.height = "auto";
       const fixedHeight = [...chatPanel.children]
@@ -257,23 +251,6 @@ var ResearchAgentSidebar = {
       const item = Zotero.getActiveZoteroPane()?.getSelectedItems()?.[0];
       return item?.isRegularItem?.() ? item : item?.parentItem;
     };
-    const refreshRagBases = async () => {
-      const previous = ragSelect.value;
-      state.knowledgeBases = await ResearchAgentIndexer.listKnowledgeBases();
-      ragSelect.replaceChildren();
-      const placeholder = doc.createElement("option"); placeholder.value = ""; placeholder.textContent = state.knowledgeBases.length ? "请选择知识库…" : "没有可用的已嵌入知识库"; ragSelect.append(placeholder);
-      for (const base of state.knowledgeBases) { const option = doc.createElement("option"); option.value = base.id; option.textContent = `${base.title}（${base.articleCount} 篇）`; ragSelect.append(option); }
-      if (state.knowledgeBases.some((base) => base.id === previous)) ragSelect.value = previous;
-    };
-    ragToggle.addEventListener("change", () => {
-      ragSelect.disabled = !ragToggle.checked;
-      if (ragToggle.checked) {
-        ragNote.textContent = "请选择一个已嵌入的知识库，作为本地检索的优先范围。联网、arXiv、GitHub、研究 Wiki 与计算工具仍可由助手按需调用；不会调用硅基流动。";
-        refreshRagBases().catch((error) => { Zotero.logError(error); status.textContent = `无法读取知识库：${error.message}`; });
-      } else {
-        ragNote.textContent = "未选择 RAG 范围：优先分析当前论文；助手仍可在确有必要时自主查询本地 Wiki、知识库、联网、arXiv、GitHub 或计算工具。";
-      }
-    });
     const renderLearningMode = () => {
       const enabled = Boolean(state.active?.learning?.enabled);
       learningToggle.checked = enabled;
@@ -463,18 +440,11 @@ var ResearchAgentSidebar = {
     const ask = async ({ question: suppliedQuestion, existingMessage = false } = {}) => {
       const question = String(suppliedQuestion ?? input.value).trim();
       if (!question || send.disabled || !state.active) return;
-      let ragConfig;
-      if (ragToggle.checked) {
-        const selectedBase = state.knowledgeBases.find((base) => base.id === ragSelect.value);
-        if (!selectedBase) { status.textContent = "启用 RAG 后，请先选择一个具体知识库。"; return; }
-        ragConfig = { enabled: true, collectionIDs: [selectedBase.id], knowledgeBaseTitle: selectedBase.title, useSemantic: false };
-      } else {
-        const paper = currentItem() || (state.active.paper?.itemID ? Zotero.Items.get(state.active.paper.itemID) : null);
-        if (!paper) ragConfig = { enabled: false };
-        else {
-          try { ragConfig = { enabled: false, paperContext: await ResearchAgentIndexer.paperContext(paper) }; }
-          catch (error) { status.textContent = `无法读取当前论文：${error.message}`; return; }
-        }
+      const paper = currentItem() || (state.active.paper?.itemID ? Zotero.Items.get(state.active.paper.itemID) : null);
+      let ragConfig = { enabled: true, collectionIDs: [], useSemantic: false };
+      if (paper) {
+        try { ragConfig = { ...ragConfig, paperContext: await ResearchAgentIndexer.paperContext(paper) }; }
+        catch (error) { Zotero.logError(error); status.textContent = `无法读取当前论文，将继续使用知识库与联网工具：${error.message}`; }
       }
       const wikiArticleKey = (currentItem() || (state.active.paper?.itemID ? Zotero.Items.get(state.active.paper.itemID) : null))?.key || state.active.paper?.key;
       let wikiContext = "";

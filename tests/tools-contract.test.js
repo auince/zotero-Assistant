@@ -15,11 +15,11 @@ assert.ok(tools.includes("GitHub 源码搜索需要访问令牌"), "GitHub authe
 assert.ok(tools.includes("async healthCheck()"), "all agent tools need a health check");
 assert.ok(tools.includes("search_research_wiki"), "the agent needs a direct research-Wiki lookup tool");
 assert.ok(tools.includes("name: \"calculate\""), "the agent needs a safe numeric helper tool");
-assert.ok(tools.includes("return this.definitions;"), "RAG scope must not be a hard tool-capability wall");
+assert.ok(tools.includes("return this.definitions;"), "knowledge search must not be a hard tool-capability wall");
 for (const name of ["本地知识库", "研究 Wiki", "计算", "网页搜索", "arXiv", "GitHub 源码"]) assert.ok(tools.includes(`"${name}"`), `health check missing ${name}`);
-assert.ok(agent.includes("RAG 优先范围未启用"), "RAG state must be framed as a scope preference");
-assert.ok(agent.includes("不禁止工具"), "external and local tools must remain available without a selected RAG scope");
+assert.ok(agent.includes("本地知识库、研究 Wiki、网页、arXiv、GitHub 与计算工具均按需可用"), "the agent must receive autonomous access to its tools");
+assert.ok(agent.includes("由你判断是否检索"), "retrieval must be chosen by the agent, not a chat-panel toggle");
 assert.ok(sidebar.includes('"检查工具可用性"'), "knowledge management needs a tool-health action");
-assert.ok(sidebar.includes("自主查询本地 Wiki、知识库、联网、arXiv、GitHub 或计算工具"), "chat UI must explain agent tool autonomy");
+assert.ok(!sidebar.includes("启用知识库检索（RAG）"), "chat UI must not expose a manual RAG enable switch");
 
 console.log("Tool availability contract passed.");

@@ -17,11 +17,11 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 
 ## Install the prototype
 
-1. Use the included `research-agent-0.4.19.xpi` (or create it with the packaging command below).
+1. Use the included `research-agent-0.4.20.xpi` (or create it with the packaging command below).
 2. Zotero → **Tools → Add-ons** → gear icon → **Install Add-on From File…**.
 3. Restart Zotero. In an item's right-side details pane, open **Research Agent** (or click its side-navigation icon). The **Research Agent** settings tab is available in Zotero Settings.
 4. Go to Zotero **Settings → Research Agent**, select a chat-model provider, enter its API key, fetch its model list directly from the provider, select a model, and run the connection test. For the official DeepSeek API address, **检查 API 余额** directly checks whether the account can make API calls. Brave Search is optional; GitHub Code Search requires an access token.
-5. Select a collection or articles, open the **Research Agent** right sidebar, choose the desired indexing action, then ask a question. Enable RAG only when you want to select and search an indexed knowledge base. When RAG is off, the agent can still analyze the current paper when available and may use web, arXiv, or GitHub tools when they materially help. The progress bar is non-modal, so Zotero remains usable while indexing.
+5. Select a collection or articles, open the **Research Agent** right sidebar, choose the desired indexing action, then ask a question. The agent automatically decides whether the current paper, local knowledge base, Research Wiki, web, arXiv, GitHub, or calculation tools improve the answer; no separate RAG switch is required. The progress bar is non-modal, so Zotero remains usable while indexing.
 
 ## External tools
 
@@ -40,8 +40,8 @@ A Zotero 9 plugin MVP that turns the currently selected collection into a local,
 node --check bootstrap.js
 for file in src/*.js chrome/content/chat.js; do node --check "$file"; done
 node tests/indexer-contract.test.js && node tests/wiki-contract.test.js && node tests/semantic-contract.test.js && node tests/jobs-contract.test.js && node tests/agent-stream-contract.test.js && node tests/answer-quality-prompt-contract.test.js && node tests/guided-learning-contract.test.js && node tests/prefs-models-contract.test.js && node tests/deepseek-v4-contract.test.js && node tests/skills-contract.test.js && node tests/memory-contract.test.js && node tests/markdown-contract.test.js && node tests/math-rendering-contract.test.js && node tests/sidebar-edit-contract.test.js && node tests/sidebar-shortcuts-layout-contract.test.js && node tests/conversation-session-contract.test.js && node tests/conversation-delete-contract.test.js && node tests/reader-selection-contract.test.js && node tests/quick-prompts-contract.test.js && node tests/notes-management-contract.test.js && node tests/notes-refresh-contract.test.js && node tests/tools-contract.test.js && node tests/tools-helper-contract.test.js
-zip -X -r research-agent-0.4.19.xpi manifest.json bootstrap.js prefs.js prefs.xhtml prefs-ui.js chrome src locale icons vendor LICENSE README.md
-unzip -t research-agent-0.4.19.xpi
+zip -X -r research-agent-0.4.20.xpi manifest.json bootstrap.js prefs.js prefs.xhtml prefs-ui.js chrome src locale icons vendor LICENSE README.md
+unzip -t research-agent-0.4.20.xpi
 ```
 
 ## DeepSeek model migration

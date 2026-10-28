@@ -17,7 +17,7 @@ assert.equal(tools.calculate("(7 + 5) * 3").result, 36);
 assert.equal(tools.calculate("1e3 / 8").result, 125);
 assert.throws(() => tools.calculate("globalThis.process.exit()"), /只能包含/);
 assert.throws(() => tools.calculate("1 / 0"), /不能除以零/);
-assert.ok(tools.definitionsFor({ ragEnabled: false }).some((entry) => entry.function.name === "search_knowledge_base"), "local knowledge search remains available when no RAG scope is selected");
+assert.ok(tools.definitionsFor().some((entry) => entry.function.name === "search_knowledge_base"), "local knowledge search remains available to the agent");
 
 (async () => {
   context.Zotero.Prefs.get = (key) => key.endsWith("BaseURL") ? "https://api.deepseek.com" : "deepseek-key";
